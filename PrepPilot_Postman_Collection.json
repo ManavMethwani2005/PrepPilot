@@ -1,0 +1,263 @@
+{
+  "info": {
+    "name": "PrepPilot API Collection",
+    "_postman_id": "preppilot-postman-collection",
+    "description": "Complete Postman collection for testing the PrepPilot hybrid deterministic + Gemini backend API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subject_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "topic_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Alex Student\",\n  \"email\": \"alex@preppilot.edu\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Login Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+                  "    console.log('JWT Token saved:', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alex@preppilot.edu\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": { "raw": "{{base_url}}/auth/me", "host": ["{{base_url}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Update Study Preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dailyAvailableHours\": 4,\n  \"preferredPeriod\": \"MORNING\",\n  \"energyPeakTime\": \"EARLY_DAY\",\n  \"sessionDurationMinutes\": 50,\n  \"breakDurationMinutes\": 10\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/preferences", "host": ["{{base_url}}"], "path": ["auth", "preferences"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Subjects & Topics",
+      "item": [
+        {
+          "name": "Create Subject",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data._id) {",
+                  "    pm.collectionVariables.set('subject_id', jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Engineering Mathematics\",\n  \"color\": \"#4f46e5\",\n  \"examDate\": \"2026-09-20\",\n  \"priorityWeight\": 5\n}"
+            },
+            "url": { "raw": "{{base_url}}/subjects", "host": ["{{base_url}}"], "path": ["subjects"] }
+          }
+        },
+        {
+          "name": "Get All Subjects",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": { "raw": "{{base_url}}/subjects", "host": ["{{base_url}}"], "path": ["subjects"] }
+          }
+        },
+        {
+          "name": "Add Topic to Subject",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data._id) {",
+                  "    pm.collectionVariables.set('topic_id', jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Eigenvalues & Matrix Diagonalization\",\n  \"estimatedHours\": 3,\n  \"difficulty\": 4,\n  \"confidenceLevel\": 2\n}"
+            },
+            "url": { "raw": "{{base_url}}/subjects/{{subject_id}}/topics", "host": ["{{base_url}}"], "path": ["subjects", "{{subject_id}}", "topics"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Timetable Generation & Plans",
+      "item": [
+        {
+          "name": "Generate Deterministic Plan + AI Advice",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2026-09-07\",\n  \"endDate\": \"2026-09-20\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/plans/generate", "host": ["{{base_url}}"], "path": ["plans", "generate"] }
+          }
+        },
+        {
+          "name": "Get Active Plan",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": { "raw": "{{base_url}}/plans/active", "host": ["{{base_url}}"], "path": ["plans", "active"] }
+          }
+        },
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": { "raw": "{{base_url}}/plans/stats", "host": ["{{base_url}}"], "path": ["plans", "stats"] }
+          }
+        },
+        {
+          "name": "Get Sessions by Range",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/sessions?startDate=2026-09-07&endDate=2026-09-20",
+              "host": ["{{base_url}}"],
+              "path": ["sessions"],
+              "query": [
+                { "key": "startDate", "value": "2026-09-07" },
+                { "key": "endDate", "value": "2026-09-20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Session By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": { "raw": "{{base_url}}/sessions/{{session_id}}", "host": ["{{base_url}}"], "path": ["sessions", "{{session_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Adaptive Rescheduling",
+      "item": [
+        {
+          "name": "Trigger Adaptive Rescheduling (Missed/Partial)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"actualMinutes\": 0\n}"
+            },
+            "url": { "raw": "{{base_url}}/reschedule/recalculate", "host": ["{{base_url}}"], "path": ["reschedule", "recalculate"] }
+          }
+        },
+        {
+          "name": "Get Gemini Study Tip for Topic",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": { "raw": "{{base_url}}/reschedule/topic-tip/{{topic_id}}", "host": ["{{base_url}}"], "path": ["reschedule", "topic-tip", "{{topic_id}}"] }
+          }
+        }
+      ]
+    }
+  ]
+}
