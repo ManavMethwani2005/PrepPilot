@@ -1,0 +1,595 @@
+<div class="container timetable-container">
+  <!-- Header -->
+  <div class="timetable-header">
+    <div>
+      <h2>Adaptive Study Timetable</h2>
+      <p>Your non-overlapping Pomodoro schedule dynamically adjusted to your pace.</p>
+    </div>
+
+    <!-- Week Controls -->
+    <div class="controls-row">
+      <button class="btn-nav" (click)="shiftWeek(-7)" title="Previous Week">← Prev</button>
+      <button class="btn-nav btn-today" (click)="resetToCurrentWeek()" [disabled]="weekOffset === 0" title="Return to Current Week">
+        Today
+      </button>
+      <span class="current-week-label">
+        {{ weekStart | date: 'mediumDate' }} — {{ weekEnd | date: 'mediumDate' }}
+      </span>
+      <button class="btn-nav" (click)="shiftWeek(7)" title="Next Week">Next →</button>
+    </div>
+  </div>
+
+  <!-- View Selector & Quick Filters Toolbar -->
+  <div class="toolbar-card card">
+    <div class="toolbar-section">
+      <span class="toolbar-label">VIEW:</span>
+      <div class="toggle-group">
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="activeView === 'today'"
+          (click)="setView('today')"
+        >
+          📌 Today
+        </button>
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="activeView === 'week'"
+          (click)="setView('week')"
+        >
+          📅 Week
+        </button>
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="activeView === 'agenda'"
+          (click)="setView('agenda')"
+        >
+          📋 Agenda
+        </button>
+      </div>
+    </div>
+
+    <div class="toolbar-section">
+      <span class="toolbar-label">FILTER:</span>
+      <div class="filter-pills">
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="activeFilter === 'ALL'"
+          (click)="setFilter('ALL')"
+        >
+          All ({{ sessions.length }})
+        </button>
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="activeFilter === 'LEARNING'"
+          (click)="setFilter('LEARNING')"
+        >
+          Learning ({{ countByType('LEARNING') }})
+        </button>
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="activeFilter === 'REVISION'"
+          (click)="setFilter('REVISION')"
+        >
+          Revision ({{ countByType('REVISION') }})
+        </button>
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="activeFilter === 'BUFFER'"
+          (click)="setFilter('BUFFER')"
+        >
+          Buffer ({{ countByType('BUFFER') }})
+        </button>
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="activeFilter === 'COMPLETED'"
+          (click)="setFilter('COMPLETED')"
+        >
+          Completed ({{ completedWeekSessions }})
+        </button>
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="activeFilter === 'REMAINING'"
+          (click)="setFilter('REMAINING')"
+        >
+          Remaining ({{ remainingWeekSessions }})
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rescheduling Notification / Result Banner -->
+  @if (rescheduleResult || statusNotice) {
+    <div class="reschedule-banner card">
+      <div class="reschedule-header">
+        <div class="reschedule-title-row">
+          <span class="reschedule-chip">⚡ Schedule Adapted</span>
+          @if (rescheduleResult?.strategy) {
+            <span class="strategy-badge">{{ formatStrategy(rescheduleResult!.strategy) }}</span>
+          }
+        </div>
+        <button class="btn-close-banner" (click)="dismissNotice()" title="Dismiss">✕</button>
+      </div>
+
+      @if (statusNotice) {
+        <div class="notice-callout">
+          <span class="notice-icon">ℹ️</span>
+          <span class="notice-text">{{ statusNotice }}</span>
+        </div>
+      }
+
+      @if (adaptedTopicTitle) {
+        <div class="adapted-topic-info">
+          <strong>Topic Relocated:</strong> {{ adaptedTopicTitle }}
+        </div>
+      }
+
+      @if (rescheduleResult?.explanation) {
+        <p class="reschedule-expl">{{ rescheduleResult!.explanation }}</p>
+      }
+      <p class="reschedule-reassurance">No domino delays. PrepPilot dynamically balances your upcoming revision sessions.</p>
+    </div>
+  }
+
+  <!-- Top Summaries Grid: Today Plan + This Week Summary -->
+  @if (!loading && sessions.length > 0) {
+    <div class="summaries-grid">
+      <!-- 1. TODAY'S PLAN -->
+      <div class="today-summary-card card">
+        <div class="card-title-bar">
+          <div>
+            <span class="section-tag">TODAY'S PLAN</span>
+            <span class="section-subdate">{{ todayDate | date: 'EEEE, MMMM d' }}</span>
+          </div>
+          <div class="metrics-row">
+            <span class="metric-chip">
+              <span class="m-icon">📚</span>
+              <strong>{{ todaySessions.length }}</strong> Sessions
+            </span>
+            <span class="metric-chip">
+              <span class="m-icon">⏳</span>
+              <strong>{{ todayPlannedFocusFormatted }}</strong> Focus
+            </span>
+            <span class="metric-chip" [class.metric-chip-done]="todayCompletedSessions === todaySessions.length && todaySessions.length > 0">
+              <span class="m-icon">✅</span>
+              <strong>{{ todayCompletedSessions }}</strong> Completed
+            </span>
+          </div>
+        </div>
+
+        @if (todaySessions.length === 0) {
+          <div class="today-empty-box">
+            <span>🌴 No study sessions scheduled for today. Great time to catch up or take a well-deserved rest!</span>
+          </div>
+        } @else {
+          <div class="today-sessions-compact-list">
+            @for (session of filteredTodaySessions; track session._id) {
+              <div class="compact-session-row" [class.row-completed]="session.status === 'COMPLETED'">
+                <div class="c-col time-col">
+                  <span class="time-main">{{ session.startTime }} - {{ session.endTime }}</span>
+                  <span class="dur-sub">{{ session.durationMinutes }}m</span>
+                </div>
+
+                <div class="c-col sub-col">
+                  <span class="color-dot" [style.background]="session.subjectId?.color || '#4f46e5'"></span>
+                  <span class="sub-name" [style.color]="session.subjectId?.color || '#334155'">
+                    {{ session.subjectId?.name || 'General' }}
+                  </span>
+                </div>
+
+                <div class="c-col topic-col">
+                  <span class="topic-title">
+                    {{ session.topicId?.title || (session.sessionType === 'BUFFER' ? 'Buffer / Catch-up Slot' : 'Revision Session') }}
+                  </span>
+                  <span class="type-badge" [class]="'type-' + session.sessionType.toLowerCase()">
+                    {{ session.sessionType }}
+                  </span>
+                </div>
+
+                <div class="c-col status-col">
+                  @if (session.status === 'COMPLETED') {
+                    <span class="status-pill pill-completed">✓ Done</span>
+                  } @else if (session.status === 'PARTIALLY_COMPLETED') {
+                    <span class="status-pill pill-partial">½ Partial ({{ session.actualMinutesSpent || 0 }}m)</span>
+                  } @else if (session.status === 'MISSED') {
+                    <span class="status-pill pill-missed">✕ Missed</span>
+                  } @else {
+                    <span class="status-pill pill-scheduled">⏳ Scheduled</span>
+                  }
+                </div>
+
+                <div class="c-col act-col">
+                  @if (session.status === 'SCHEDULED') {
+                    <button class="act-btn btn-done" (click)="markSession(session, 'COMPLETED')" title="Mark Done">✓ Done</button>
+                    <button class="act-btn btn-partial" (click)="openPartialModal(session)" title="Log Partial">½ Partial</button>
+                    <button class="act-btn btn-miss" (click)="triggerMissedAdaptive(session)" title="Missed">✕ Missed</button>
+                    <a [routerLink]="['/session', session._id]" class="act-btn btn-focus" title="Timer">⏱️ Focus</a>
+                  } @else {
+                    <button class="btn-reset" (click)="markSession(session, 'SCHEDULED')" title="Reset">Reset</button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- 2. THIS WEEK SUMMARY -->
+      <div class="week-summary-card card">
+        <div class="card-title-bar">
+          <div>
+            <span class="section-tag">THIS WEEK SUMMARY</span>
+            <span class="section-subdate">{{ weekStart | date: 'MMM d' }} – {{ weekEnd | date: 'MMM d, y' }}</span>
+          </div>
+          <span class="summary-pill ai-pill">🛡️ Adaptive Co-Pilot Active</span>
+        </div>
+
+        <div class="week-stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">Total Sessions</span>
+            <span class="stat-value">{{ totalWeekSessions }}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Planned Focus</span>
+            <span class="stat-value">{{ totalWeekHoursFormatted }}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Completed</span>
+            <span class="stat-value text-success">{{ completedWeekSessions }}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Remaining</span>
+            <span class="stat-value text-amber">{{ remainingWeekSessions }}</span>
+          </div>
+          <div class="stat-card progress-card">
+            <div class="progress-info">
+              <span class="stat-label">Weekly Progress</span>
+              <span class="stat-percent">{{ weeklyProgressPercent }}%</span>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" [style.width.%]="weeklyProgressPercent"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Loading State -->
+  @if (loading) {
+    <div class="loading-state">
+      <div class="skeleton-line" style="width: 60%; height: 28px; margin: 0 auto 12px;"></div>
+      <div class="skeleton-line" style="width: 40%; height: 16px; margin: 0 auto;"></div>
+    </div>
+  } @else if (sessions.length === 0) {
+    <!-- Empty State -->
+    <div class="card empty-state">
+      <div class="empty-icon">📅</div>
+      <h3>No study sessions scheduled for this week</h3>
+      <p>You haven't generated a study schedule yet or have no topics assigned for this date window.</p>
+      <a routerLink="/subjects" class="btn-primary">Set Up Syllabus & Generate Plan →</a>
+    </div>
+  } @else {
+    <!-- VIEW 1: TODAY VIEW -->
+    @if (activeView === 'today') {
+      <div class="focused-today-view card">
+        <div class="view-header">
+          <h3>📌 Focused Today View ({{ todayDate | date: 'EEEE, MMMM d, y' }})</h3>
+          <p>Concentrate on your immediate study priorities for today.</p>
+        </div>
+
+        @if (filteredTodaySessions.length === 0) {
+          <div class="today-empty-box large-empty">
+            @if (todaySessions.length === 0) {
+              <p>🌴 No study sessions scheduled for today.</p>
+              <p class="sub-tip">Take a well-deserved break, review previous topics, or switch to Week view to see upcoming tasks.</p>
+            } @else {
+              <p>No today sessions match the selected filter ({{ activeFilter }}).</p>
+              <button class="btn-nav" (click)="setFilter('ALL')">Show All Today Sessions</button>
+            }
+          </div>
+        } @else {
+          <div class="agenda-day-rows">
+            @for (session of filteredTodaySessions; track session._id) {
+              <div
+                class="agenda-row"
+                [class.completed]="session.status === 'COMPLETED'"
+                [class.missed]="session.status === 'MISSED'"
+                [style.border-left-color]="session.subjectId?.color || '#4f46e5'"
+              >
+                <div class="agenda-col time-box">
+                  <span class="a-time">{{ session.startTime }} - {{ session.endTime }}</span>
+                  <span class="a-dur">{{ session.durationMinutes }}m</span>
+                </div>
+
+                <div class="agenda-col subject-box">
+                  <span class="color-dot" [style.background]="session.subjectId?.color || '#4f46e5'"></span>
+                  <span class="a-sub" [style.color]="session.subjectId?.color || '#334155'">
+                    {{ session.subjectId?.name || 'General' }}
+                  </span>
+                </div>
+
+                <div class="agenda-col topic-box">
+                  <span class="a-topic">
+                    {{ session.topicId?.title || (session.sessionType === 'BUFFER' ? 'Buffer / Catch-up Slot' : 'Revision Session') }}
+                  </span>
+                  <span class="type-badge" [class]="'type-' + session.sessionType.toLowerCase()">
+                    {{ session.sessionType }}
+                  </span>
+                </div>
+
+                <div class="agenda-col status-box">
+                  @if (session.status === 'COMPLETED') {
+                    <span class="status-pill pill-completed">✓ Done</span>
+                  } @else if (session.status === 'PARTIALLY_COMPLETED') {
+                    <span class="status-pill pill-partial">½ Partial ({{ session.actualMinutesSpent || 0 }}m)</span>
+                  } @else if (session.status === 'MISSED') {
+                    <span class="status-pill pill-missed">✕ Missed</span>
+                  } @else {
+                    <span class="status-pill pill-scheduled">⏳ Scheduled</span>
+                  }
+                </div>
+
+                <div class="agenda-col actions-box">
+                  @if (session.status === 'SCHEDULED') {
+                    <button class="act-btn btn-done" (click)="markSession(session, 'COMPLETED')" title="Mark Done">✓ Done</button>
+                    <button class="act-btn btn-partial" (click)="openPartialModal(session)" title="Log Partial">½ Partial</button>
+                    <button class="act-btn btn-miss" (click)="triggerMissedAdaptive(session)" title="Missed">✕ Missed</button>
+                    <a [routerLink]="['/session', session._id]" class="act-btn btn-focus" title="Timer">⏱️ Focus</a>
+                  } @else {
+                    <button class="btn-reset" (click)="markSession(session, 'SCHEDULED')" title="Reset">Reset</button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- VIEW 2: WEEK VIEW (Grid) -->
+    @if (activeView === 'week') {
+      <div class="days-column-container">
+        @for (day of groupedDays; track day.dateStr) {
+          <div class="day-card card" [class.is-today]="isToday(day.dateStr)">
+            <div class="day-header">
+              <div class="day-title-wrap">
+                <span class="day-name">{{ day.date | date: 'EEEE' }}</span>
+                <span class="day-date">{{ day.date | date: 'MMM d' }}</span>
+              </div>
+              <div class="day-badge-wrap">
+                @if (isToday(day.dateStr)) {
+                  <span class="today-tag">TODAY</span>
+                }
+                @if (getFilteredSessions(day.sessions).length > 0) {
+                  <span class="day-time-tag">{{ getDayTotalMinutes(getFilteredSessions(day.sessions)) }}m</span>
+                }
+              </div>
+            </div>
+
+            <div class="day-sessions">
+              @if (day.sessions.length === 0) {
+                <div class="empty-day-box">
+                  <span>🌴 Free time / Rest day</span>
+                </div>
+              } @else if (getFilteredSessions(day.sessions).length === 0) {
+                <div class="empty-day-box filter-empty">
+                  <span>No matching sessions</span>
+                </div>
+              } @else {
+                @for (session of getFilteredSessions(day.sessions); track session._id) {
+                  <div
+                    class="session-box"
+                    [class.buffer]="session.sessionType === 'BUFFER'"
+                    [class.completed]="session.status === 'COMPLETED'"
+                    [class.missed]="session.status === 'MISSED'"
+                    [style.border-left-color]="session.subjectId?.color || '#94a3b8'"
+                  >
+                    <div class="session-top">
+                      <span class="session-time">{{ session.startTime }} - {{ session.endTime }}</span>
+                      <div class="top-tags">
+                        <span class="type-badge" [class]="'type-' + session.sessionType.toLowerCase()">
+                          {{ session.sessionType }}
+                        </span>
+                        <span class="dur-badge">{{ session.durationMinutes }}m</span>
+                      </div>
+                    </div>
+
+                    <div class="session-title">
+                      {{ session.topicId?.title || (session.sessionType === 'BUFFER' ? 'Buffer / Catch-up Slot' : 'Revision Session') }}
+                    </div>
+
+                    @if (session.subjectId) {
+                      <div class="session-sub">
+                        <span class="color-dot" [style.background]="session.subjectId.color"></span>
+                        <span [style.color]="session.subjectId.color">{{ session.subjectId.name }}</span>
+                      </div>
+                    }
+
+                    <div class="session-actions">
+                      @if (session.status === 'SCHEDULED') {
+                        <button class="act-btn btn-done" (click)="markSession(session, 'COMPLETED')" title="Mark Done">✓ Done</button>
+                        <button class="act-btn btn-partial" (click)="openPartialModal(session)" title="Log Partial">½ Partial</button>
+                        <button class="act-btn btn-miss" (click)="triggerMissedAdaptive(session)" title="Missed">✕ Missed</button>
+                        <a [routerLink]="['/session', session._id]" class="act-btn btn-focus" title="Timer">⏱️ Focus</a>
+                      } @else if (session.status === 'COMPLETED') {
+                        <span class="status-pill pill-completed">✓ Done ({{ session.durationMinutes }}m)</span>
+                        <button class="btn-reset" (click)="markSession(session, 'SCHEDULED')">Reset</button>
+                      } @else if (session.status === 'PARTIALLY_COMPLETED') {
+                        <span class="status-pill pill-partial">½ Partial ({{ session.actualMinutesSpent || 0 }}m)</span>
+                        <button class="btn-reset" (click)="markSession(session, 'SCHEDULED')">Reset</button>
+                      } @else {
+                        <span class="status-pill pill-missed">✕ Missed</span>
+                        <button class="btn-reset" (click)="markSession(session, 'SCHEDULED')">Reset</button>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- VIEW 3: AGENDA VIEW -->
+    @if (activeView === 'agenda') {
+      <div class="agenda-view card">
+        <div class="view-header">
+          <h3>📋 Weekly Agenda View</h3>
+          <p>Chronological day-by-day compact study schedule for easy scanning.</p>
+        </div>
+
+        <div class="agenda-days-list">
+          @for (day of groupedDays; track day.dateStr) {
+            <div class="agenda-day-group" [class.is-today]="isToday(day.dateStr)">
+              <div class="agenda-day-header">
+                <div class="day-label-group">
+                  <span class="agenda-day-name">{{ day.date | date: 'EEEE, MMMM d' }}</span>
+                  @if (isToday(day.dateStr)) {
+                    <span class="today-tag">TODAY</span>
+                  }
+                </div>
+                <span class="agenda-day-total">
+                  {{ getDayTotalMinutes(getFilteredSessions(day.sessions)) }}m planned
+                </span>
+              </div>
+
+              @if (day.sessions.length === 0) {
+                <div class="agenda-day-empty">
+                  <span>🌴 Free time / Rest day</span>
+                </div>
+              } @else if (getFilteredSessions(day.sessions).length === 0) {
+                <div class="agenda-day-empty filter-empty">
+                  <span>No sessions match the "{{ activeFilter }}" filter</span>
+                </div>
+              } @else {
+                <div class="agenda-day-rows">
+                  @for (session of getFilteredSessions(day.sessions); track session._id) {
+                    <div
+                      class="agenda-row"
+                      [class.completed]="session.status === 'COMPLETED'"
+                      [class.missed]="session.status === 'MISSED'"
+                      [style.border-left-color]="session.subjectId?.color || '#4f46e5'"
+                    >
+                      <div class="agenda-col time-box">
+                        <span class="a-time">{{ session.startTime }} - {{ session.endTime }}</span>
+                        <span class="a-dur">{{ session.durationMinutes }}m</span>
+                      </div>
+
+                      <div class="agenda-col subject-box">
+                        <span class="color-dot" [style.background]="session.subjectId?.color || '#4f46e5'"></span>
+                        <span class="a-sub" [style.color]="session.subjectId?.color || '#334155'">
+                          {{ session.subjectId?.name || 'General' }}
+                        </span>
+                      </div>
+
+                      <div class="agenda-col topic-box">
+                        <span class="a-topic">
+                          {{ session.topicId?.title || (session.sessionType === 'BUFFER' ? 'Buffer / Catch-up Slot' : 'Revision Session') }}
+                        </span>
+                        <span class="type-badge" [class]="'type-' + session.sessionType.toLowerCase()">
+                          {{ session.sessionType }}
+                        </span>
+                      </div>
+
+                      <div class="agenda-col status-box">
+                        @if (session.status === 'COMPLETED') {
+                          <span class="status-pill pill-completed">✓ Done</span>
+                        } @else if (session.status === 'PARTIALLY_COMPLETED') {
+                          <span class="status-pill pill-partial">½ Partial ({{ session.actualMinutesSpent || 0 }}m)</span>
+                        } @else if (session.status === 'MISSED') {
+                          <span class="status-pill pill-missed">✕ Missed</span>
+                        } @else {
+                          <span class="status-pill pill-scheduled">⏳ Scheduled</span>
+                        }
+                      </div>
+
+                      <div class="agenda-col actions-box">
+                        @if (session.status === 'SCHEDULED') {
+                          <button class="act-btn btn-done" (click)="markSession(session, 'COMPLETED')" title="Mark Done">✓ Done</button>
+                          <button class="act-btn btn-partial" (click)="openPartialModal(session)" title="Log Partial">½ Partial</button>
+                          <button class="act-btn btn-miss" (click)="triggerMissedAdaptive(session)" title="Missed">✕ Missed</button>
+                          <a [routerLink]="['/session', session._id]" class="act-btn btn-focus" title="Timer">⏱️ Focus</a>
+                        } @else {
+                          <button class="btn-reset" (click)="markSession(session, 'SCHEDULED')" title="Reset">Reset</button>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+
+  <!-- Partial Completion Modal -->
+  @if (showPartialModal && activeSessionForPartial) {
+    <div class="modal-backdrop" (click)="showPartialModal = false">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Log Partial Study Session</h3>
+          <button class="btn-close-modal" (click)="showPartialModal = false">✕</button>
+        </div>
+        <p class="modal-desc">
+          Life happens! Enter how many minutes you studied for <strong>{{ activeSessionForPartial.topicId?.title || 'this session' }}</strong>. PrepPilot will credit your progress and intelligently absorb the remainder without domino delays.
+        </p>
+
+        <div class="preset-pills">
+          <span class="preset-label">Quick select:</span>
+          @if (activeSessionForPartial.durationMinutes > 15) {
+            <button
+              type="button"
+              class="pill-btn"
+              [class.active]="partialMinutes === 15"
+              (click)="setPresetPartialMinutes(15)"
+            >
+              15m
+            </button>
+          }
+          @if (activeSessionForPartial.durationMinutes > 25) {
+            <button
+              type="button"
+              class="pill-btn"
+              [class.active]="partialMinutes === 25"
+              (click)="setPresetPartialMinutes(25)"
+            >
+              25m
+            </button>
+          }
+          @if (activeSessionForPartial.durationMinutes > 35) {
+            <button
+              type="button"
+              class="pill-btn"
+              [class.active]="partialMinutes === 35"
+              (click)="setPresetPartialMinutes(35)"
+            >
+              35m
+            </button>
+          }
+        </div>
+
+        <div class="form-group">
+          <label>Minutes Completed (out of {{ activeSessionForPartial.durationMinutes }}m):</label>
+          <input type="number" [(ngModel)]="partialMinutes" min="5" [max]="activeSessionForPartial.durationMinutes - 1" />
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-nav" (click)="showPartialModal = false">Cancel</button>
+          <button class="btn-primary" (click)="submitPartialCompletion()">⚡ Adapt Remaining Schedule</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,433 @@
+<div class="container subjects-container">
+  <div class="page-header">
+    <div>
+      <h2>Subjects & Exam Deadlines</h2>
+      <p>Structure your syllabus, set topic difficulty and confidence to power PrepPilot's deterministic AI scheduler.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-secondary" (click)="showSubjectModal = true">+ Add Subject</button>
+      <button
+        class="btn-primary"
+        (click)="onGeneratePlan()"
+        [disabled]="generatingPlan || subjects.length === 0 || getTotalTopics() === 0"
+        [title]="getGeneratePlanTooltip()"
+      >
+        @if (generatingPlan) {
+          <span>⚡ Generating Adaptive Schedule (Gemini AI)...</span>
+        } @else {
+          <span>⚡ Generate Study Schedule</span>
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- Syllabus KPIs Summary Bar -->
+  @if (!loading && subjects.length > 0) {
+    <div class="syllabus-kpi-grid">
+      <div class="card kpi-card">
+        <span class="kpi-label">Total Subjects</span>
+        <span class="kpi-val">{{ subjects.length }}</span>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-label">Total Topics</span>
+        <span class="kpi-val">{{ totalTopics }}</span>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-label">Estimated Hours</span>
+        <span class="kpi-val">{{ totalHours }}h</span>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-label">Syllabus Completed</span>
+        <span class="kpi-val">{{ overallProgress }}%</span>
+      </div>
+    </div>
+  }
+
+  @if (successBanner) {
+    <div class="alert alert-success">{{ successBanner }}</div>
+  }
+
+  @if (planError) {
+    <div class="alert alert-danger">{{ planError }}</div>
+  }
+
+  @if (loadError) {
+    <div class="alert alert-danger error-with-retry">
+      <span>⚠️ {{ loadError }}</span>
+      <button class="btn-retry" type="button" (click)="loadSubjects()">↻ Retry</button>
+    </div>
+  }
+
+  @if (loading) {
+    <div class="loading-state">
+      <div class="skeleton-line" style="width: 50%; height: 24px; margin: 0 auto 12px;"></div>
+      <div class="skeleton-line" style="width: 30%; height: 16px; margin: 0 auto;"></div>
+    </div>
+  } @else if (subjects.length === 0 && !loadError) {
+    <div class="card empty-state">
+      <div class="empty-icon">📚</div>
+      <h3>No subjects added yet</h3>
+      <p>Start by adding the subjects you are studying along with their upcoming exam dates.</p>
+      <button class="btn-primary" (click)="showSubjectModal = true">+ Add Your First Subject</button>
+    </div>
+  } @else if (subjects.length > 0) {
+    <div class="subjects-grid">
+      @for (subject of subjects; track subject._id) {
+        <div class="card subject-card" [style.border-top]="'4px solid ' + subject.color">
+          <div class="subject-header">
+            <div>
+              <h3 class="subject-title">{{ subject.name }}</h3>
+              <div class="exam-info">
+                📅 Exam: {{ subject.examDate | date: 'mediumDate' }}
+                <span class="days-badge" [class.urgent]="getDaysUntil(subject.examDate) <= 7">
+                  {{ getDaysUntil(subject.examDate) }} days left
+                </span>
+              </div>
+            </div>
+            <div class="subject-top-actions">
+              <span class="priority-tag">Priority {{ subject.priorityWeight }}/5</span>
+              <button class="btn-icon-delete" (click)="deleteSubject(subject._id)" title="Delete subject">✕</button>
+            </div>
+          </div>
+
+          <!-- Subject Progress Bar -->
+          <div class="progress-section">
+            <div class="progress-labels">
+              <span>{{ subject.topics?.length || 0 }} Topics ({{ subject.totalHours || 0 }} hrs)</span>
+              <span>{{ subject.progressPercent || 0 }}% Done</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" [style.width.%]="subject.progressPercent || 0" [style.background]="subject.color"></div>
+            </div>
+          </div>
+
+          <!-- Topics List -->
+          <div class="topics-section">
+            <div class="topics-header">
+              <h4>Topics & Chapters</h4>
+              <div class="topic-header-actions">
+                <button class="btn-import-syllabus" (click)="openPdfModal(subject)" title="Import topics from syllabus PDF">
+                  📄 Import Syllabus PDF
+                </button>
+                <button class="btn-add-topic" (click)="openTopicModal(subject)">+ Add Topic</button>
+              </div>
+            </div>
+
+            @if (!subject.topics || subject.topics.length === 0) {
+              <p class="no-topics-text">No topics added. Click "+ Add Topic" to add chapters.</p>
+            } @else {
+              <div class="topics-list">
+                @for (topic of subject.topics; track topic._id) {
+                  <div class="topic-item">
+                    <div class="topic-main">
+                      <span class="topic-title">{{ topic.title }}</span>
+                      <span class="topic-hours">{{ topic.estimatedHours }}h</span>
+                    </div>
+                    <div class="topic-meta">
+                      <span class="badge diff-badge" [class]="'diff-' + topic.difficulty" title="Topic Difficulty">
+                        Diff: {{ topic.difficulty }}/5
+                      </span>
+                      <span class="badge conf-badge" title="Current Student Confidence">
+                        Conf: {{ topic.confidenceLevel }}/5
+                      </span>
+                      <button class="btn-delete-topic" (click)="deleteTopic(topic._id!)" title="Delete topic">✕</button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Add Subject Modal -->
+  @if (showSubjectModal) {
+    <div class="modal-backdrop" (click)="showSubjectModal = false">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <h3>Add New Subject</h3>
+        <form (ngSubmit)="saveSubject()">
+          @if (subjectModalError) {
+            <div class="alert alert-danger">{{ subjectModalError }}</div>
+          }
+
+          <div class="form-group">
+            <label>Subject Name</label>
+            <input type="text" [(ngModel)]="newSubject.name" name="name" required maxlength="80" placeholder="e.g. Organic Chemistry" />
+          </div>
+
+          <div class="form-group">
+            <label>Exam Date (must be in the future)</label>
+            <input type="date" [(ngModel)]="newSubject.examDate" [min]="minExamDate" name="examDate" required />
+          </div>
+
+          <div class="form-group">
+            <label>Accent Color</label>
+            <div class="color-palette">
+              @for (c of colorOptions; track c) {
+                <div
+                  class="color-circle"
+                  [style.background]="c"
+                  [class.active]="newSubject.color === c"
+                  (click)="newSubject.color = c"
+                ></div>
+              }
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Importance / Priority Weight (1 = Normal, 5 = Crucial)</label>
+            <input type="range" min="1" max="5" [(ngModel)]="newSubject.priorityWeight" name="priorityWeight" />
+            <div class="slider-ticks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" (click)="showSubjectModal = false">Cancel</button>
+            <button type="submit" class="btn-primary" [disabled]="!newSubject.name || !newSubject.examDate">Save Subject</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Add Topic Modal -->
+  @if (showTopicModal && activeSubjectForTopic) {
+    <div class="modal-backdrop" (click)="showTopicModal = false">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <h3>Add Topic to {{ activeSubjectForTopic.name }}</h3>
+        <form (ngSubmit)="saveTopic()">
+          @if (topicModalError) {
+            <div class="alert alert-danger">{{ topicModalError }}</div>
+          }
+
+          <div class="form-group">
+            <label>Topic / Chapter Title</label>
+            <input type="text" [(ngModel)]="newTopic.title" name="topicTitle" required maxlength="120" placeholder="e.g. Reaction Mechanisms" />
+          </div>
+
+          <div class="form-group">
+            <label>Estimated Hours to Master (0.5 to 50 hrs)</label>
+            <input type="number" step="0.5" min="0.5" max="50" [(ngModel)]="newTopic.estimatedHours" name="hours" required />
+          </div>
+
+          <div class="form-group">
+            <label>Topic Difficulty (1 = Very Easy, 5 = Very Hard)</label>
+            <input type="range" min="1" max="5" [(ngModel)]="newTopic.difficulty" name="difficulty" />
+            <div class="slider-ticks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+          </div>
+
+          <div class="form-group">
+            <label>Current Confidence (1 = No clue, 5 = Confident)</label>
+            <input type="range" min="1" max="5" [(ngModel)]="newTopic.confidenceLevel" name="confidence" />
+            <div class="slider-ticks"><span>1 (Low)</span><span>3 (Moderate)</span><span>5 (Mastered)</span></div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" (click)="showTopicModal = false">Cancel</button>
+            <button type="submit" class="btn-primary" [disabled]="!newTopic.title">Add Topic</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Syllabus PDF Import Modal -->
+  @if (showPdfModal && activeSubjectForPdf) {
+    <div class="modal-backdrop" (click)="closePdfModal()">
+      <div class="modal-card modal-card-lg" (click)="$event.stopPropagation()">
+        <div class="modal-header-row">
+          <div>
+            <h3>Import Syllabus PDF</h3>
+            <p class="modal-subtitle">Subject: <strong>{{ activeSubjectForPdf.name }}</strong></p>
+          </div>
+          <button type="button" class="btn-close-modal" (click)="closePdfModal()" title="Close">✕</button>
+        </div>
+
+        @if (pdfModalError) {
+          <div class="alert alert-danger" style="margin-top: 0.75rem;">{{ pdfModalError }}</div>
+        }
+        @if (pdfWarning) {
+          <div class="alert alert-warning" style="margin-top: 0.75rem;">{{ pdfWarning }}</div>
+        }
+
+        <!-- Step 1: Upload PDF -->
+        @if (pdfModalStep === 'upload') {
+          <div class="pdf-upload-container">
+            <div
+              class="upload-dropzone"
+              [class.has-file]="pdfFile !== null"
+              (dragover)="$event.preventDefault()"
+              (drop)="onPdfFileDropped($event)"
+            >
+              <input
+                type="file"
+                id="pdfFileInput"
+                accept=".pdf,application/pdf"
+                (change)="onPdfFileSelected($event)"
+                class="file-input-hidden"
+              />
+              <label for="pdfFileInput" class="dropzone-label">
+                <span class="upload-icon">📄</span>
+                @if (pdfFile) {
+                  <div class="selected-file-info">
+                    <span class="file-name">{{ pdfFileName }}</span>
+                    <span class="file-size">({{ pdfFileSize }})</span>
+                  </div>
+                  <span class="btn-change-file">Click or drag another PDF here to replace</span>
+                } @else {
+                  <span class="upload-prompt">Click to select or drag a syllabus PDF here</span>
+                  <span class="upload-hint">Supported: PDF document (max 5 MB)</span>
+                }
+              </label>
+            </div>
+
+            <div class="upload-guide-card">
+              <span class="guide-title">⚡ How AI & Pattern Syllabus Extraction Works</span>
+              <p>PrepPilot securely processes your PDF in memory, identifies chapters and individual topics, and lets you review, edit, or customize them before adding to your subject.</p>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 1.5rem;">
+              <button type="button" class="btn-secondary" (click)="closePdfModal()">Cancel</button>
+              <button
+                type="button"
+                class="btn-primary"
+                [disabled]="!pdfFile || pdfExtracting"
+                (click)="extractSyllabusPdf()"
+              >
+                @if (pdfExtracting) {
+                  <span>⚡ Extracting Topics...</span>
+                } @else {
+                  <span>⚡ Extract Topics from PDF</span>
+                }
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Step 2: Review Extracted Topics -->
+        @if (pdfModalStep === 'review') {
+          <div class="pdf-review-container">
+            <div class="review-toolbar">
+              <div class="toolbar-stats">
+                <span class="badge-source" [class.ai]="pdfSource === 'ai'">
+                  {{ pdfSource === 'ai' ? '🤖 Gemini AI' : '📋 Pattern Extractor' }}
+                </span>
+                <span class="stats-text">
+                  <strong>{{ getSelectedTopicsCount() }}</strong> of {{ getTotalExtractedTopicsCount() }} topics selected ({{ getSelectedHours() }}h)
+                </span>
+              </div>
+              <div class="toolbar-actions">
+                <button type="button" class="btn-link" (click)="selectAllTopics(true)">Select All</button>
+                <span class="divider">•</span>
+                <button type="button" class="btn-link" (click)="selectAllTopics(false)">Deselect All</button>
+              </div>
+            </div>
+
+            <div class="units-review-scroll">
+              @for (unit of extractedUnits; track $index; let uIdx = $index) {
+                <div class="unit-review-card">
+                  <div class="unit-card-header">
+                    <label class="unit-toggle-label">
+                      <input
+                        type="checkbox"
+                        [checked]="isUnitAllSelected(unit)"
+                        [indeterminate]="isUnitPartiallySelected(unit)"
+                        (change)="toggleUnitTopics(unit, $event)"
+                      />
+                      <input
+                        type="text"
+                        class="unit-title-input"
+                        [(ngModel)]="unit.unitName"
+                        placeholder="Unit Name"
+                      />
+                    </label>
+                    <button type="button" class="btn-add-unit-topic" (click)="addTopicToUnit(unit)" title="Add topic to this unit">
+                      + Add Topic
+                    </button>
+                  </div>
+
+                  <div class="unit-topics-list">
+                    @for (t of unit.topics; track $index; let tIdx = $index) {
+                      <div class="review-topic-row" [class.topic-duplicate]="t.isDuplicate" [class.topic-unselected]="!t.selected">
+                        <label class="topic-check-label">
+                          <input type="checkbox" [(ngModel)]="t.selected" />
+                        </label>
+
+                        <div class="topic-title-wrapper">
+                          <input
+                            type="text"
+                            class="topic-title-edit"
+                            [(ngModel)]="t.title"
+                            maxlength="120"
+                            placeholder="Topic title"
+                          />
+                          @if (t.isDuplicate) {
+                            <span class="badge-already-added" title="Topic with this title already exists in your subject">Already Added</span>
+                          }
+                        </div>
+
+                        <div class="topic-field-hours">
+                          <input
+                            type="number"
+                            step="0.5"
+                            min="0.5"
+                            max="50"
+                            class="hours-input"
+                            [(ngModel)]="t.estimatedHours"
+                            title="Estimated Hours"
+                          />
+                          <span class="field-unit">h</span>
+                        </div>
+
+                        <div class="topic-field-diff">
+                          <select [(ngModel)]="t.difficulty" class="diff-select" title="Difficulty rating">
+                            <option [value]="1">Diff 1 (Very Easy)</option>
+                            <option [value]="2">Diff 2 (Easy)</option>
+                            <option [value]="3">Diff 3 (Medium)</option>
+                            <option [value]="4">Diff 4 (Hard)</option>
+                            <option [value]="5">Diff 5 (Very Hard)</option>
+                          </select>
+                        </div>
+
+                        <button
+                          type="button"
+                          class="btn-remove-review-topic"
+                          (click)="removeTopic(unit, tIdx)"
+                          title="Delete topic"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="review-actions-bar">
+              <button type="button" class="btn-secondary" (click)="pdfModalStep = 'upload'">
+                ← Choose Another PDF
+              </button>
+              <div class="right-actions">
+                <button type="button" class="btn-secondary" (click)="closePdfModal()">Cancel</button>
+                <button
+                  type="button"
+                  class="btn-primary"
+                  [disabled]="getSelectedTopicsCount() === 0 || pdfImporting"
+                  (click)="confirmImportTopics()"
+                >
+                  @if (pdfImporting) {
+                    <span>Importing Topics...</span>
+                  } @else {
+                    <span>Import {{ getSelectedTopicsCount() }} Topics</span>
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

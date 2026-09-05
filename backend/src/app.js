@@ -36,8 +36,17 @@ app.use(
   })
 );
 
+app.set('etag', false);
 app.use(express.json());
 app.use(generalLimiter);
+
+// Prevent browser/client from caching dynamic user/planner API responses
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
 
 // Health check endpoint for Render/uptime monitors
 app.get('/api/health', (req, res) => {

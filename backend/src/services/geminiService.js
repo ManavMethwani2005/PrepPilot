@@ -77,6 +77,7 @@ const getTopicStudyTip = async (topicTitle, difficulty) => {
 
 /**
  * Deterministic regex-based syllabus extraction fallback
+ * Deterministic regex-based syllabus extraction fallback
  * Used when Gemini API is unconfigured, rate-limited, or unavailable.
  */
 const fallbackExtractSyllabus = (text, subjectName = 'Course') => {
@@ -85,58 +86,95 @@ const fallbackExtractSyllabus = (text, subjectName = 'Course') => {
   let currentUnit = null;
   let nextIsTopic = false;
 
-  const unitRegex = /^(?:unit|module|chapter|section|part)\s*(\d+|[ivxlcdm]+)?[\s:\-—\.]*(.*)/i;
-  const sectionHeaderRegex = /^(?:topics|important\s*\/\s*exam\s*focus|curriculum|syllabus|course\s*outline)$/i;
+  const unitRegex = /^(?:unit|module|chapter|section|part|week|lecture|lesson|block|theme)\s*(\d+|[ivxlcdm]+)?[\s:\-—\.]*(.*)/i;
+  const sectionHeaderRegex = /^(?:topics|important\s*\/\s*exam\s*focus|curriculum|syllabus|course\s*outline|contents|course\s*content)[\s:\-—\.]*$/i;
+
+  // Supports Unicode bullets, hyphens, en/em dashes, and arrows
+  const bulletRegex = /^[\u2022\u2023\u2043\u2219\u25cb\u25cf\u25aa\u25ab\u25b8\u25ba\uf0a7\uf0b7\uf0d8•*—–>~o\-]\s*(.+)/;
+  const numberRegex = /^(\(?\d+(?:\.\d+)*\)?|[a-gA-G]\)|\(?[a-gA-G]\.|\(?[ivxlcdmIVXLCDM]+\)?)\s*[\.\-—\)]?\s+(.+)/;
+
+  const ensureUnit = (name) => {
+    if (!currentUnit) {
+      const cleanName = name || `${subjectName} Core Topics`;
+      currentUnit = { unitName: cleanName, title: cleanName, topics: [] };
+      units.push(currentUnit);
+    }
+    return currentUnit;
+  };
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
+    // Skip pagination, single digit lines, or generic syllabus title lines
+    if (/^page\s*\d+(\s*(of|\/)\s*\d+)?$/i.test(line) || /^\d+$/.test(line)) continue;
+    if (/^(course\s*(syllabus|outline)|sample\s*(syllabus|notes)|syllabus)$/i.test(line)) continue;
+
     // Single-character bullet indicator on its own line
-    if (line === '•' || line === '\u2022' || line === '-' || line === '*' || line === '—') {
+    if (['•', '-', '*', '—', '–', '\u2022'].includes(line)) {
       nextIsTopic = true;
       continue;
     }
 
-    const startsWithBullet = /^[\u2022•\-\*—]\s*(.+)/.test(line);
-    const startsWithNumber = /^(\d+(?:\.\d+)?)\s*[\.\-—\)]\s*(.+)/.test(line);
-
     if (unitRegex.test(line) || sectionHeaderRegex.test(line)) {
-      currentUnit = { unitName: line, topics: [] };
+      const cleanUnitName = line.replace(/[:\-—\.\s]+$/, '').trim();
+      currentUnit = { unitName: cleanUnitName, title: cleanUnitName, topics: [] };
       units.push(currentUnit);
       nextIsTopic = false;
       continue;
     }
 
-    let topicTitle = '';
+    let topicCandidate = '';
     if (nextIsTopic) {
-      topicTitle = line;
+      topicCandidate = line;
       nextIsTopic = false;
-    } else if (startsWithBullet) {
-      topicTitle = line.replace(/^[\u2022•\-\*—]\s*/, '').trim();
-    } else if (startsWithNumber) {
-      topicTitle = line.replace(/^(\d+(?:\.\d+)?)\s*[\.\-—\)]\s*/, '').trim();
-    } else if (currentUnit && line.length >= 4 && line.length <= 100 && !line.toLowerCase().includes('sample') && !line.toLowerCase().includes('syllabus')) {
-      // Lines under a unit without bullets
-      topicTitle = line;
+    } else if (bulletRegex.test(line)) {
+      topicCandidate = line.replace(bulletRegex, '$1').trim();
+    } else if (numberRegex.test(line)) {
+      topicCandidate = line.replace(numberRegex, '$2').trim();
+    } else if (currentUnit && line.length >= 4 && line.length <= 120 && !line.toLowerCase().includes('sample syllabus') && !line.toLowerCase().includes('sample notes')) {
+      // Lines under a unit without explicit bullets
+      topicCandidate = line;
+    } else if (!currentUnit && line.length >= 4 && line.length <= 100 && !/syllabus/i.test(line)) {
+      // Plain lines before any unit header
+      topicCandidate = line;
     }
 
     if (
-      topicTitle &&
-      topicTitle.length >= 3 &&
-      !topicTitle.toLowerCase().includes('sample syllabus') &&
-      !topicTitle.toLowerCase().includes('sample notes')
+      topicCandidate &&
+      topicCandidate.length >= 2 &&
+      !topicCandidate.toLowerCase().includes('sample syllabus') &&
+      !topicCandidate.toLowerCase().includes('sample notes')
     ) {
-      if (!currentUnit) {
-        currentUnit = { unitName: `${subjectName} Topics`, topics: [] };
-        units.push(currentUnit);
+      ensureUnit();
+
+      // Check if candidate contains semicolon-separated items
+      if (topicCandidate.includes(';')) {
+        const subParts = topicCandidate.split(';').map((p) => p.trim()).filter((p) => p.length >= 2);
+        if (subParts.length > 1 && subParts.length <= 5) {
+          for (const sp of subParts) {
+            currentUnit.topics.push({
+              title: sp.slice(0, 100).trim(),
+              estimatedHours: 2,
+              difficulty: 3,
+            });
+          }
+          continue;
+        }
       }
+
       currentUnit.topics.push({
-        title: topicTitle.slice(0, 100).trim(),
+        title: topicCandidate.slice(0, 100).trim(),
         estimatedHours: 2,
         difficulty: 3,
       });
     }
   }
+
+  // Ensure dual naming compatibility (unitName and title) on all units
+  units.forEach((u) => {
+    if (!u.title) u.title = u.unitName;
+    if (!u.unitName) u.unitName = u.title;
+  });
 
   const validUnits = units.filter((u) => u.topics && u.topics.length > 0);
   if (validUnits.length === 0) {
@@ -154,7 +192,7 @@ const fallbackExtractSyllabus = (text, subjectName = 'Course') => {
  *
  * @param {string} syllabusText - Plain text extracted from syllabus PDF
  * @param {string} subjectName - Subject title for context
- * @returns {Promise<{ units: Array<{ unitName: string, topics: Array<{ title: string, estimatedHours: number, difficulty: number }> }>, source: string }>}
+ * @returns {Promise<{ units: Array<{ unitName: string, title: string, topics: Array<{ title: string, estimatedHours: number, difficulty: number }> }>, source: string }>}
  */
 const extractSyllabusTopics = async (syllabusText, subjectName = 'Course') => {
   const client = getGeminiClient();
@@ -165,6 +203,7 @@ const extractSyllabusTopics = async (syllabusText, subjectName = 'Course') => {
     return {
       units: fallbackUnits,
       source: 'fallback',
+      warning: 'Gemini API key is not configured. Topics extracted using PrepPilot deterministic pattern parser.',
     };
   }
 
@@ -239,6 +278,7 @@ ${truncatedText}`;
 
         return {
           unitName,
+          title: unitName,
           topics: validTopics,
         };
       })

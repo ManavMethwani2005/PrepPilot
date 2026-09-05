@@ -1,0 +1,99 @@
+<div class="container focus-container">
+  @if (loading) {
+    <div class="card loading-card">
+      <div class="skeleton-line" style="width: 50%; height: 28px; margin: 0 auto 12px;"></div>
+      <div class="skeleton-line" style="width: 30%; height: 16px; margin: 0 auto;"></div>
+    </div>
+  } @else if (!session) {
+    <div class="card empty-state">
+      <h3>Session not found</h3>
+      <p>This focus session may have been deleted or already re-allocated.</p>
+      <a routerLink="/timetable" class="btn-primary">Return to Timetable</a>
+    </div>
+  } @else {
+    <div class="focus-card card">
+      <!-- Session Header Meta -->
+      <div class="session-meta">
+        <span class="type-pill" [class]="'type-' + session.sessionType.toLowerCase()">
+          {{ session.sessionType }} SESSION
+        </span>
+        @if (session.subjectId) {
+          <span class="sub-badge" [style.color]="session.subjectId.color">
+            <span class="color-dot" [style.background]="session.subjectId.color"></span>
+            {{ session.subjectId.name }}
+          </span>
+        }
+        <span class="duration-pill">⏱️ {{ session.durationMinutes }}m planned</span>
+      </div>
+
+      <h2 class="topic-heading">{{ session.topicId?.title || 'Open Review Session' }}</h2>
+
+      <!-- PrepPilot Topic Study Tip Box -->
+      @if (topicTip) {
+        <div class="topic-tip-card">
+          <span class="sparkle">✨</span>
+          <div class="tip-content">
+            <span class="tip-tag">PrepPilot AI Study Technique</span>
+            <p class="tip-body">{{ topicTip }}</p>
+          </div>
+        </div>
+      } @else if (session.topicId) {
+        <div class="tip-cta-card">
+          <div class="tip-default-text">
+            💡 <strong>Active Focus:</strong> Silence distractions and test yourself after each concept.
+          </div>
+          <button class="btn-get-tip" (click)="fetchTopicTip()" [disabled]="loadingTip">
+            @if (loadingTip) {
+              <span>Consulting PrepPilot AI...</span>
+            } @else {
+              <span>✨ Get AI Strategy for this Topic</span>
+            }
+          </button>
+        </div>
+      }
+
+      <!-- Pomodoro Countdown Timer Display -->
+      <div class="timer-display">
+        <div class="timer-status-badge" [class.active]="isRunning" [class.done]="timeRemaining === 0">
+          {{ isRunning ? '⚡ FOCUS IN PROGRESS' : (timeRemaining === 0 ? '🎉 SESSION FINISHED!' : '⏸ TIMER PAUSED') }}
+        </div>
+        <div class="time-number">{{ formattedTime }}</div>
+
+        <!-- Progress Bar -->
+        <div class="timer-progress-bg">
+          <div class="timer-progress-fill" [style.width.%]="progressPercent"></div>
+        </div>
+        <div class="progress-labels">
+          <span>{{ elapsedMinutes }}m elapsed</span>
+          <span>{{ progressPercent }}% completed</span>
+        </div>
+      </div>
+
+      <!-- Timer Controls -->
+      <div class="timer-controls">
+        @if (!isRunning) {
+          <button class="btn-primary btn-timer" (click)="startTimer()">▶ Start Focus</button>
+        } @else {
+          <button class="btn-secondary btn-timer btn-pause" (click)="pauseTimer()">⏸ Pause</button>
+        }
+        <button class="btn-secondary btn-reset" (click)="resetTimer()">↺ Reset</button>
+      </div>
+
+      <!-- Session Outcome Actions -->
+      <div class="outcome-actions">
+        <div class="outcome-header">
+          <span>When you're done studying:</span>
+        </div>
+        <div class="outcome-buttons">
+          <button class="btn-success btn-finish" (click)="completeSession()">
+            ✓ Complete & Log {{ session.durationMinutes }}m
+          </button>
+          <button class="btn-danger btn-miss" (click)="markMissedAndReschedule()">
+            ✕ Mark Missed & Auto-Reschedule
+          </button>
+        </div>
+        <a routerLink="/timetable" class="link-back">← Back to Timetable</a>
+      </div>
+    </div>
+  }
+</div>

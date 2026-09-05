@@ -325,6 +325,7 @@ const extractSyllabus = async (req, res, next) => {
 
     // 1. Extract plain text from in-memory PDF buffer
     const { text, numPages } = await extractTextFromPdfBuffer(req.file.buffer);
+    console.log(`[PDF Extraction]: Extracted ${text.length} characters from ${numPages} page(s).`);
 
     // 2. Extract structured units and topics via Gemini 1.5 Flash (with regex fallback)
     const result = await extractSyllabusTopics(text, subject.name);
@@ -336,6 +337,7 @@ const extractSyllabus = async (req, res, next) => {
     const existingTitles = existingTopics.map((t) => t.title.toLowerCase().trim());
 
     const totalExtracted = (result.units || []).reduce((acc, u) => acc + (u.topics ? u.topics.length : 0), 0);
+    console.log(`[PDF Extraction]: Detected ${result.units?.length || 0} unit(s) and ${totalExtracted} topic(s).`);
 
     res.json({
       success: true,

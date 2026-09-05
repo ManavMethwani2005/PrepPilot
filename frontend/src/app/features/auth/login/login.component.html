@@ -1,0 +1,74 @@
+<div class="auth-page">
+  <div class="auth-card card">
+    <div class="auth-header">
+      <div class="brand-pill">
+        <span class="brand-icon">⚡</span>
+        <span class="brand-name">PrepPilot</span>
+      </div>
+      <h2>Welcome back</h2>
+      <p class="subtitle">Continue preparing with a plan built around your time.</p>
+    </div>
+
+    @if (errorMessage) {
+      <div class="alert alert-danger" role="alert">
+        <span class="alert-icon">⚠️</span>
+        <span>{{ errorMessage }}</span>
+      </div>
+    }
+
+    <form (ngSubmit)="onSubmit()" class="auth-form" novalidate>
+      <div class="form-group">
+        <label for="login-email">Email address</label>
+        <input
+          type="email"
+          id="login-email"
+          [(ngModel)]="email"
+          name="email"
+          required
+          autocomplete="email"
+          placeholder="student@example.com"
+          [disabled]="loading"
+        />
+      </div>
+
+      <div class="form-group">
+        <div class="label-row">
+          <label for="login-password">Password</label>
+        </div>
+        <div class="password-input-wrapper">
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            id="login-password"
+            [(ngModel)]="password"
+            name="password"
+            required
+            autocomplete="current-password"
+            placeholder="••••••••"
+            [disabled]="loading"
+          />
+          <button
+            type="button"
+            class="btn-toggle-password"
+            (click)="showPassword = !showPassword"
+            [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+          >
+            {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary btn-submit" [disabled]="loading || !email || !password">
+        @if (loading) {
+          <span class="spinner-dot"></span>
+          <span>Signing in...</span>
+        } @else {
+          <span>Sign In</span>
+        }
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Don't have an account? <a routerLink="/register">Create an account</a></p>
+    </div>
+  </div>
+</div>

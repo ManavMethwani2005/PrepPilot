@@ -1,0 +1,210 @@
+<div class="container dashboard-container">
+  <!-- Dynamic Welcome Header -->
+  <div class="welcome-banner">
+    <div>
+      <h2>{{ greeting }}, {{ authService.currentUser()?.fullName || 'Student' }} 👋</h2>
+      <p class="subtitle">Here's your study momentum and personalized focus plan for today.</p>
+    </div>
+    <div class="banner-actions">
+      <a routerLink="/subjects" class="btn-secondary">Manage Syllabus 📚</a>
+      <a routerLink="/timetable" class="btn-primary">View Full Timetable 🗓️</a>
+    </div>
+  </div>
+
+  <!-- Loading Skeleton -->
+  @if (loading) {
+    <div class="card skeleton-banner">
+      <div class="skeleton-line" style="width: 40%; height: 24px; margin-bottom: 12px;"></div>
+      <div class="skeleton-line" style="width: 80%; height: 16px;"></div>
+    </div>
+    <div class="stats-grid">
+      <div class="card skeleton-stat" *ngFor="let i of [1,2,3,4]">
+        <div class="skeleton-line" style="width: 50%; height: 16px;"></div>
+        <div class="skeleton-line" style="width: 70%; height: 28px; margin-top: 8px;"></div>
+      </div>
+    </div>
+  } @else {
+    <!-- PrepPilot AI Strategic Co-Pilot Recommendation Card -->
+    @if (activePlan?.strategicTip || activePlan?.geminiSummary) {
+      <div class="card ai-card">
+        <div class="ai-header">
+          <div class="ai-title-wrap">
+            <span class="ai-chip">⚡ PrepPilot AI Strategy</span>
+            <span class="ai-badge-live">Active Co-Pilot</span>
+          </div>
+          <span class="ai-status">Plan #{{ activePlan?._id?.substring((activePlan?._id?.length || 5) - 5) }}</span>
+        </div>
+        @if (activePlan?.geminiSummary) {
+          <p class="ai-summary">{{ activePlan?.geminiSummary }}</p>
+        }
+        @if (activePlan?.strategicTip) {
+          <div class="ai-tip-box">
+            <span class="tip-icon">💡</span>
+            <div class="tip-content">
+              <span class="tip-heading">Strategic Recommendation</span>
+              <p class="tip-text">{{ activePlan?.strategicTip }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Key Metrics Stats Grid -->
+    <div class="stats-grid">
+      <div class="card stat-card">
+        <div class="stat-icon icon-indigo">📈</div>
+        <div class="stat-info">
+          <span class="stat-label">Plan Completion</span>
+          <div class="stat-val-row">
+            <span class="stat-val">{{ stats?.completionRate || 0 }}%</span>
+          </div>
+          <div class="stat-bar-bg">
+            <div class="stat-bar-fill" [style.width.%]="stats?.completionRate || 0"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-icon icon-emerald">✅</div>
+        <div class="stat-info">
+          <span class="stat-label">Sessions Completed</span>
+          <span class="stat-val">{{ stats?.completedSessions || 0 }} <span class="stat-sub">/ {{ stats?.totalSessions || 0 }}</span></span>
+          <span class="stat-footnote">Across active syllabus</span>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-icon icon-amber">⏳</div>
+        <div class="stat-info">
+          <span class="stat-label">Today's Focus</span>
+          <span class="stat-val">{{ todayCompletedCount }} <span class="stat-sub">/ {{ stats?.todaySessions?.length || 0 }}</span></span>
+          <span class="stat-footnote">{{ todayPlannedMinutes }} mins planned</span>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-icon icon-rose">🎯</div>
+        <div class="stat-info">
+          <span class="stat-label">Upcoming Exams</span>
+          <span class="stat-val">{{ upcomingExams.length }}</span>
+          <span class="stat-footnote">
+            {{ nearestExamText }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upcoming Exam Countdown Cards (if any) -->
+    @if (upcomingExams.length > 0) {
+      <div class="exams-section">
+        <div class="section-title-row">
+          <h3>Upcoming Exam Deadlines</h3>
+          <span class="section-subtext">Countdown to priority milestones</span>
+        </div>
+        <div class="exams-grid">
+          @for (subj of upcomingExams; track subj._id) {
+            <div class="card exam-card" [style.border-left-color]="subj.color || '#4f46e5'">
+              <div class="exam-card-main">
+                <div class="exam-title-row">
+                  <h4 class="exam-subj-name">{{ subj.name }}</h4>
+                  <span
+                    class="countdown-badge"
+                    [class.urgent]="getDaysUntil(subj.examDate) <= 7"
+                    [class.warning]="getDaysUntil(subj.examDate) > 7 && getDaysUntil(subj.examDate) <= 14"
+                  >
+                    {{ formatDaysUntil(subj.examDate) }}
+                  </span>
+                </div>
+                <div class="exam-meta-row">
+                  <span class="exam-date-text">📅 {{ subj.examDate | date: 'mediumDate' }}</span>
+                  <span class="exam-topics-count">{{ subj.topics?.length || 0 }} topics</span>
+                  <span class="priority-pill">Priority {{ subj.priorityWeight }}/5</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Today's Study Agenda Section -->
+    <div class="card today-section">
+      <div class="section-header">
+        <div>
+          <h3>Today's Focus Agenda</h3>
+          <p class="agenda-subtitle">Structured, non-overlapping intervals designed for your peak energy.</p>
+        </div>
+        <span class="today-date-pill">{{ today | date: 'fullDate' }}</span>
+      </div>
+
+      @if (!stats?.todaySessions || stats?.todaySessions?.length === 0) {
+        <div class="no-sessions-today">
+          <div class="empty-icon-box">🎉</div>
+          <h4>You're all caught up for today!</h4>
+          <p>No study sessions scheduled for today, or no active timetable generated yet.</p>
+          <div class="empty-actions">
+            <a routerLink="/subjects" class="btn-primary">Manage Syllabus & Generate Plan →</a>
+            <a routerLink="/timetable" class="btn-secondary">View Full Timetable</a>
+          </div>
+        </div>
+      } @else {
+        <div class="agenda-list">
+          @for (session of stats?.todaySessions; track session._id) {
+            <div
+              class="agenda-item"
+              [class.is-next]="isNextSession(session)"
+              [class.done]="session.status === 'COMPLETED'"
+              [class.missed]="session.status === 'MISSED'"
+              [style.border-left-color]="session.subjectId?.color || '#94a3b8'"
+            >
+              <div class="time-block">
+                <span class="time-start">{{ session.startTime }}</span>
+                <span class="time-sep">to</span>
+                <span class="time-end">{{ session.endTime }}</span>
+              </div>
+
+              <div class="agenda-details">
+                <div class="topic-header-row">
+                  <span class="topic-name">
+                    {{ session.topicId?.title || (session.sessionType === 'BUFFER' ? 'Buffer / Catch-up Slot' : 'Revision Session') }}
+                  </span>
+                  @if (isNextSession(session)) {
+                    <span class="next-up-pill">Next Up ⚡</span>
+                  }
+                </div>
+
+                <div class="sub-name">
+                  @if (session.subjectId) {
+                    <span class="color-dot" [style.background]="session.subjectId.color"></span>
+                    <span class="subj-name-text">{{ session.subjectId.name }}</span>
+                  }
+                  <span class="session-type-badge" [class]="'type-' + session.sessionType.toLowerCase()">
+                    {{ session.sessionType }}
+                  </span>
+                  <span class="duration-badge">{{ session.durationMinutes }}m</span>
+                </div>
+              </div>
+
+              <div class="agenda-status">
+                <span class="badge" [class]="'status-' + session.status.toLowerCase()">
+                  {{ formatStatus(session.status) }}
+                </span>
+                @if (session.status === 'SCHEDULED' || session.status === 'PARTIALLY_COMPLETED') {
+                  <a [routerLink]="['/session', session._id]" class="btn-start">
+                    Start Focus ⏱️
+                  </a>
+                } @else if (session.status === 'COMPLETED') {
+                  <span class="completed-check" title="Session completed">✓ Done</span>
+                } @else {
+                  <a routerLink="/timetable" class="btn-review">
+                    Adaptive Review →
+                  </a>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -293,3 +293,23 @@ input:focus, select:focus, textarea:focus {
     padding: 1.25rem;
   }
 }
+
+/* Session Status Pills & Action Buttons */
+.status-pill { display: inline-flex; align-items: center; padding: 0.2rem 0.5rem; border-radius: var(--radius-sm); font-size: 0.72rem; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
+.pill-completed { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+.pill-partial { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+.pill-missed { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+.pill-scheduled { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+
+.act-btn { padding: 0.25rem 0.55rem; font-size: 0.72rem; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid transparent; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.btn-done { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+.btn-done:hover { background: #bbf7d0; }
+.btn-partial { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+.btn-partial:hover { background: #fde68a; }
+.btn-miss { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+.btn-miss:hover { background: #fecaca; }
+.btn-focus { background: #e0e7ff; color: #4338ca; border-color: #c7d2fe; }
+.btn-focus:hover { background: #c7d2fe; }
+.btn-reset { background: #fff; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.72rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); cursor: pointer; }
+.btn-reset:hover { background: #f1f5f9; color: var(--text-main); }
+

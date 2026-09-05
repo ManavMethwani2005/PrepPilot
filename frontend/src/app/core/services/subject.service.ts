@@ -42,13 +42,14 @@ export class SubjectService {
 
   extractSyllabusPdf(subjectId: string, file: File): Observable<{
     success: boolean;
-    subjectId: string;
-    subjectName: string;
-    units: Array<{ unitName: string; topics: Array<{ title: string; estimatedHours: number; difficulty: number }> }>;
-    source: string;
+    subjectId?: string;
+    subjectName?: string;
+    units?: Array<{ unitName?: string; title?: string; topics?: Array<{ title?: string; estimatedHours?: number; difficulty?: number }> }>;
+    source?: string;
     warning?: string;
-    totalExtracted: number;
-    existingTopicTitles: string[];
+    totalExtracted?: number;
+    existingTopicTitles?: string[];
+    data?: any;
   }> {
     const formData = new FormData();
     formData.append('syllabusPdf', file);
@@ -60,7 +61,7 @@ export class SubjectService {
     count: number;
     skippedDuplicates: number;
     data: Topic[];
-    summary: { totalTopics: number; totalHours: number; progressPercent: number };
+    summary: { totalTopics: number; totalHours: number; completedHours?: number; progressPercent: number };
   }> {
     return this.http.post<any>(`${this.apiUrl}/${subjectId}/syllabus/import-topics`, { topics });
   }

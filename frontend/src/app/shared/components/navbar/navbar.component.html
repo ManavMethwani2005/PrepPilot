@@ -1,0 +1,90 @@
+<header class="navbar">
+  <div class="nav-container">
+    <!-- Brand -->
+    <a routerLink="/dashboard" class="brand" (click)="closeMobileMenu()">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-name">PrepPilot</span>
+      <span class="tagline-badge">AI Co-Pilot</span>
+    </a>
+
+    @if (authService.isAuthenticated()) {
+      <!-- Desktop Navigation Links -->
+      <nav class="nav-links desktop-only" aria-label="Main Navigation">
+        <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+          Today
+        </a>
+        <a routerLink="/timetable" routerLinkActive="active">
+          Schedule
+        </a>
+        <a routerLink="/subjects" routerLinkActive="active">
+          Subjects
+        </a>
+        <a routerLink="/onboarding" routerLinkActive="active">
+          Preferences
+        </a>
+      </nav>
+
+      <!-- Desktop User Actions -->
+      <div class="user-actions desktop-only">
+        <div class="user-pill">
+          <span class="avatar-dot" aria-hidden="true"></span>
+          <span class="user-name">{{ authService.currentUser()?.fullName || 'Student' }}</span>
+        </div>
+        <button class="logout-btn" (click)="onLogout()" title="Sign out of PrepPilot">
+          Sign Out
+        </button>
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <button
+        class="mobile-toggle"
+        (click)="toggleMobileMenu()"
+        [attr.aria-expanded]="mobileMenuOpen"
+        aria-label="Toggle navigation menu"
+      >
+        @if (mobileMenuOpen) {
+          <span>✕</span>
+        } @else {
+          <span>☰</span>
+        }
+      </button>
+    } @else {
+      <!-- Guest Navigation -->
+      <div class="auth-buttons">
+        <a routerLink="/login" class="btn-text">Sign In</a>
+        <a routerLink="/register" class="btn-signup">Get Started</a>
+      </div>
+    }
+  </div>
+
+  <!-- Mobile Dropdown Menu -->
+  @if (authService.isAuthenticated() && mobileMenuOpen) {
+    <div class="mobile-nav" (click)="closeMobileMenu()">
+      <div class="mobile-user-row">
+        <span class="avatar-dot" aria-hidden="true"></span>
+        <span class="mobile-user-name">{{ authService.currentUser()?.fullName || 'Student' }}</span>
+      </div>
+
+      <nav class="mobile-links" aria-label="Mobile Navigation">
+        <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+          📅 Today
+        </a>
+        <a routerLink="/timetable" routerLinkActive="active">
+          🗓️ Schedule
+        </a>
+        <a routerLink="/subjects" routerLinkActive="active">
+          📚 Subjects
+        </a>
+        <a routerLink="/onboarding" routerLinkActive="active">
+          ⚙️ Preferences
+        </a>
+      </nav>
+
+      <div class="mobile-footer">
+        <button class="mobile-logout-btn" (click)="onLogout()">
+          Sign Out
+        </button>
+      </div>
+    </div>
+  }
+</header>

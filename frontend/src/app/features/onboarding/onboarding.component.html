@@ -1,0 +1,217 @@
+<div class="container onboarding-container">
+  <div class="header-section">
+    <span class="step-chip">Step 1 of 2: Study Habits</span>
+    <h2>Personalize Your Study Rhythm</h2>
+    <p class="subtitle">PrepPilot creates a realistic schedule built around your natural focus hours and prevents burnout.</p>
+  </div>
+
+  <div class="card onboarding-card">
+    <form (ngSubmit)="savePreferences()">
+      <!-- Section 1: Daily Study Capacity -->
+      <div class="section-block">
+        <div class="section-title-row">
+          <div class="num-badge">1</div>
+          <div>
+            <div class="pref-label-row">
+              <label for="dailyHours" class="block-title">Daily Study Capacity</label>
+              <span class="capacity-badge">{{ preferences.dailyAvailableHours }} hours / day</span>
+            </div>
+            <p class="block-hint">How many hours can you realistically dedicate each day without exhaustion?</p>
+          </div>
+        </div>
+
+        <div class="slider-wrapper">
+          <input
+            type="range"
+            id="dailyHours"
+            name="dailyHours"
+            min="0.5"
+            max="10"
+            step="0.5"
+            [(ngModel)]="preferences.dailyAvailableHours"
+            class="range-slider"
+            [attr.aria-valuenow]="preferences.dailyAvailableHours"
+            aria-valuemin="0.5"
+            aria-valuemax="10"
+            aria-label="Daily study hours"
+          />
+          <div class="slider-ticks" aria-hidden="true">
+            <span>1 hr (Light)</span>
+            <span>3 - 4 hrs (Recommended)</span>
+            <span>8+ hrs (Exam Sprint)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Section 2: Preferred Study Period -->
+      <div class="section-block">
+        <div class="section-title-row">
+          <div class="num-badge">2</div>
+          <div>
+            <span class="block-title">Preferred Study Period</span>
+            <p class="block-hint">When do you usually sit down to focus? The scheduler starts your sessions here.</p>
+          </div>
+        </div>
+
+        <div class="period-grid" role="radiogroup" aria-label="Preferred Study Period">
+          <div
+            class="period-card"
+            [class.selected]="preferences.preferredPeriod === 'MORNING'"
+            (click)="preferences.preferredPeriod = 'MORNING'"
+            role="radio"
+            [attr.aria-checked]="preferences.preferredPeriod === 'MORNING'"
+            tabindex="0"
+            (keydown.enter)="preferences.preferredPeriod = 'MORNING'"
+            (keydown.space)="preferences.preferredPeriod = 'MORNING'"
+          >
+            <div class="period-icon" aria-hidden="true">🌅</div>
+            <div class="period-name">Morning</div>
+            <div class="period-time">09:00 AM</div>
+          </div>
+
+          <div
+            class="period-card"
+            [class.selected]="preferences.preferredPeriod === 'AFTERNOON'"
+            (click)="preferences.preferredPeriod = 'AFTERNOON'"
+            role="radio"
+            [attr.aria-checked]="preferences.preferredPeriod === 'AFTERNOON'"
+            tabindex="0"
+            (keydown.enter)="preferences.preferredPeriod = 'AFTERNOON'"
+            (keydown.space)="preferences.preferredPeriod = 'AFTERNOON'"
+          >
+            <div class="period-icon" aria-hidden="true">☀️</div>
+            <div class="period-name">Afternoon</div>
+            <div class="period-time">02:00 PM</div>
+          </div>
+
+          <div
+            class="period-card"
+            [class.selected]="preferences.preferredPeriod === 'EVENING'"
+            (click)="preferences.preferredPeriod = 'EVENING'"
+            role="radio"
+            [attr.aria-checked]="preferences.preferredPeriod === 'EVENING'"
+            tabindex="0"
+            (keydown.enter)="preferences.preferredPeriod = 'EVENING'"
+            (keydown.space)="preferences.preferredPeriod = 'EVENING'"
+          >
+            <div class="period-icon" aria-hidden="true">🌆</div>
+            <div class="period-name">Evening</div>
+            <div class="period-time">05:30 PM</div>
+          </div>
+
+          <div
+            class="period-card"
+            [class.selected]="preferences.preferredPeriod === 'NIGHT'"
+            (click)="preferences.preferredPeriod = 'NIGHT'"
+            role="radio"
+            [attr.aria-checked]="preferences.preferredPeriod === 'NIGHT'"
+            tabindex="0"
+            (keydown.enter)="preferences.preferredPeriod = 'NIGHT'"
+            (keydown.space)="preferences.preferredPeriod = 'NIGHT'"
+          >
+            <div class="period-icon" aria-hidden="true">🌙</div>
+            <div class="period-name">Night</div>
+            <div class="period-time">08:00 PM</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Section 3: Energy Peak Alignment -->
+      <div class="section-block">
+        <div class="section-title-row">
+          <div class="num-badge">3</div>
+          <div>
+            <span class="block-title">Mental Energy Peak</span>
+            <p class="block-hint">PrepPilot prioritizes your hardest chapters when your brain is sharpest.</p>
+          </div>
+        </div>
+
+        <div class="energy-grid" role="radiogroup" aria-label="Mental Energy Peak">
+          <div
+            class="energy-card"
+            [class.selected]="preferences.energyPeakTime === 'EARLY_DAY'"
+            (click)="preferences.energyPeakTime = 'EARLY_DAY'"
+            role="radio"
+            [attr.aria-checked]="preferences.energyPeakTime === 'EARLY_DAY'"
+            tabindex="0"
+            (keydown.enter)="preferences.energyPeakTime = 'EARLY_DAY'"
+            (keydown.space)="preferences.energyPeakTime = 'EARLY_DAY'"
+          >
+            <span class="energy-icon">⚡</span>
+            <div>
+              <div class="energy-name">Early Day Flow</div>
+              <div class="energy-desc">Tackle difficult topics in your first daily sessions</div>
+            </div>
+          </div>
+
+          <div
+            class="energy-card"
+            [class.selected]="preferences.energyPeakTime === 'LATE_DAY'"
+            (click)="preferences.energyPeakTime = 'LATE_DAY'"
+            role="radio"
+            [attr.aria-checked]="preferences.energyPeakTime === 'LATE_DAY'"
+            tabindex="0"
+            (keydown.enter)="preferences.energyPeakTime = 'LATE_DAY'"
+            (keydown.space)="preferences.energyPeakTime = 'LATE_DAY'"
+          >
+            <span class="energy-icon">🌙</span>
+            <div>
+              <div class="energy-name">Late Day Flow</div>
+              <div class="energy-desc">Warm up first, schedule deep dives in later sessions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Section 4: Pomodoro Cadence -->
+      <div class="section-block">
+        <div class="section-title-row">
+          <div class="num-badge">4</div>
+          <div>
+            <span class="block-title">Pomodoro Interval Cadence</span>
+            <p class="block-hint">Structured study blocks prevent cognitive fatigue.</p>
+          </div>
+        </div>
+
+        <div class="cadence-grid">
+          <div class="form-group">
+            <label for="sessDuration">Focus block length</label>
+            <select id="sessDuration" name="sessionDuration" [(ngModel)]="preferences.sessionDurationMinutes">
+              <option [value]="30">30 minutes (Quick)</option>
+              <option [value]="45">45 minutes (Standard)</option>
+              <option [value]="50">50 minutes (Classic Pomodoro)</option>
+              <option [value]="60">60 minutes (Deep Focus)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="brkDuration">Rest break length</label>
+            <select id="brkDuration" name="breakDuration" [(ngModel)]="preferences.breakDurationMinutes">
+              <option [value]="5">5 minutes</option>
+              <option [value]="10">10 minutes (Recommended)</option>
+              <option [value]="15">15 minutes (Relaxed)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="action-footer">
+        <button type="submit" class="btn-primary btn-continue" [disabled]="saving">
+          @if (saving) {
+            <span class="spinner-dot"></span>
+            <span>Saving Preferences...</span>
+          } @else {
+            <span>Continue to Syllabus Setup →</span>
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
