@@ -8,14 +8,7 @@
       <h2>Welcome back</h2>
       <p class="subtitle">Continue preparing with a plan built around your time.</p>
     </div>
-
-    @if (errorMessage) {
-      <div class="alert alert-danger" role="alert">
-        <span class="alert-icon">⚠️</span>
-        <span>{{ errorMessage }}</span>
-      </div>
-    }
-
+ 
     <form (ngSubmit)="onSubmit()" class="auth-form" novalidate>
       <div class="form-group">
         <label for="login-email">Email address</label>
@@ -23,6 +16,7 @@
           type="email"
           id="login-email"
           [(ngModel)]="email"
+          (input)="clearError()"
           name="email"
           required
           autocomplete="email"
@@ -40,6 +34,7 @@
             [type]="showPassword ? 'text' : 'password'"
             id="login-password"
             [(ngModel)]="password"
+            (input)="clearError()"
             name="password"
             required
             autocomplete="current-password"
@@ -56,6 +51,13 @@
           </button>
         </div>
       </div>
+
+      @if (errorMessage) {
+        <div class="alert alert-danger" role="alert" aria-live="polite">
+          <span class="alert-icon">⚠️</span>
+          <span>{{ errorMessage }}</span>
+        </div>
+      }
 
       <button type="submit" class="btn-primary btn-submit" [disabled]="loading || !email || !password">
         @if (loading) {

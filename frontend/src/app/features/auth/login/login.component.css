@@ -86,15 +86,26 @@
   padding: 0.65rem 0.85rem;
   border-radius: var(--radius-md);
   font-size: 0.84rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  animation: fadeIn 0.2s ease-in-out;
 }
 .alert-danger {
   background: var(--danger-light);
   color: var(--danger-text);
   border: 1px solid var(--danger-border);
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .auth-footer {
   text-align: center;

@@ -13,25 +13,27 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       let friendlyMessage = 'An unexpected error occurred. Please try again.';
 
       if (error.status === 0) {
-        friendlyMessage = 'Unable to connect to the PrepPilot server. Please check your network connection.';
+        friendlyMessage = 'Unable to connect to the server. Please try again.';
       } else if (error.status === 401) {
-        friendlyMessage = 'Your session has expired. Please sign in again.';
-        authService.logout();
-        router.navigate(['/login']);
+        const isAuthEndpoint = req.url.includes('/auth/login') || req.url.includes('/auth/register');
+        if (isAuthEndpoint) {
+          friendlyMessage = error.error?.message || 'Invalid email or password.';
+        } else {
+          friendlyMessage = 'Your session has expired. Please sign in again.';
+          authService.logout();
+          router.navigate(['/login']);
+        }
       } else if (error.status === 429) {
         friendlyMessage = 'You are making requests a bit too fast. Please wait a moment before trying again.';
-      } else if (error.status === 500) {
-        friendlyMessage = 'Something went wrong on our end. Please try again in a few moments.';
+      } else if (error.status >= 500) {
+        friendlyMessage = 'Unable to connect to the server. Please try again.';
       } else if (error.error?.message) {
         friendlyMessage = error.error.message;
       }
 
-      const modifiedError = {
-        ...error,
-        userMessage: friendlyMessage,
-      };
+      (error as any).userMessage = friendlyMessage;
 
-      return throwError(() => modifiedError);
+      return throwError(() => error);
     })
   );
 };
