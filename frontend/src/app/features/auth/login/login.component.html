@@ -1,76 +1,137 @@
 <div class="auth-page">
-  <div class="auth-card card">
-    <div class="auth-header">
-      <div class="brand-pill">
+  <div class="auth-container">
+    <!-- Left Column: Branding, Product Value, Features, and Visual -->
+    <div class="auth-hero">
+      <div class="brand-badge desktop-only">
         <span class="brand-icon">⚡</span>
         <span class="brand-name">PrepPilot</span>
+        <span class="brand-sub">AI Study Co-Pilot</span>
       </div>
-      <h2>Welcome back</h2>
-      <p class="subtitle">Continue preparing with a plan built around your time.</p>
+
+      <h1 class="hero-headline">
+        Your Study Plan,<br />
+        <span class="gradient-text">Built Around You.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        An AI-powered study co-pilot that helps you stay on track during regular study days and prepare effectively for your exams.
+      </p>
+
+      <!-- 3 Concise Feature Highlights -->
+      <div class="features-list">
+        <div class="feature-item">
+          <div class="feature-icon-box">
+            <span class="feature-icon">📚</span>
+          </div>
+          <div class="feature-text">
+            <h3 class="feature-title">Personalized Planning</h3>
+            <p class="feature-desc">Build a realistic study schedule around your syllabus, available time, and exam dates.</p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon-box">
+            <span class="feature-icon">🎯</span>
+          </div>
+          <div class="feature-text">
+            <h3 class="feature-title">Exam-Focused Preparation</h3>
+            <p class="feature-desc">Prioritize important and difficult topics as your exams approach.</p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon-box">
+            <span class="feature-icon">🔄</span>
+          </div>
+          <div class="feature-text">
+            <h3 class="feature-title">Adaptive Scheduling</h3>
+            <p class="feature-desc">Missed a session? PrepPilot adjusts your plan without disrupting what comes next.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasteful Study & Exam Planning Illustration -->
+      <div class="illustration-card" aria-hidden="true">
+        <img src="study-plan-preview.svg" alt="Dynamic study schedule preview" class="study-illustration" />
+      </div>
     </div>
- 
-    <form (ngSubmit)="onSubmit()" class="auth-form" novalidate>
-      <div class="form-group">
-        <label for="login-email">Email address</label>
-        <input
-          type="email"
-          id="login-email"
-          [(ngModel)]="email"
-          (input)="clearError()"
-          name="email"
-          required
-          autocomplete="email"
-          placeholder="student@example.com"
-          [disabled]="loading"
-        />
-      </div>
 
-      <div class="form-group">
-        <div class="label-row">
-          <label for="login-password">Password</label>
+    <!-- Right Column: Login Card -->
+    <div class="auth-card-wrapper">
+      <div class="auth-card card">
+        <div class="auth-header">
+          <div class="brand-pill mobile-only">
+            <span class="brand-icon">⚡</span>
+            <span class="brand-name">PrepPilot</span>
+          </div>
+          <h2>Welcome back</h2>
+          <p class="subtitle">Sign in to access your study schedule and exam plan.</p>
         </div>
-        <div class="password-input-wrapper">
-          <input
-            [type]="showPassword ? 'text' : 'password'"
-            id="login-password"
-            [(ngModel)]="password"
-            (input)="clearError()"
-            name="password"
-            required
-            autocomplete="current-password"
-            placeholder="••••••••"
-            [disabled]="loading"
-          />
-          <button
-            type="button"
-            class="btn-toggle-password"
-            (click)="showPassword = !showPassword"
-            [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
-          >
-            {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+
+        <form (ngSubmit)="onSubmit()" class="auth-form" novalidate>
+          <div class="form-group">
+            <label for="login-email">Email address</label>
+            <input
+              type="email"
+              id="login-email"
+              [(ngModel)]="email"
+              (input)="clearError()"
+              name="email"
+              required
+              autocomplete="email"
+              placeholder="student@example.com"
+              [disabled]="loading"
+            />
+          </div>
+
+          <div class="form-group">
+            <div class="label-row">
+              <label for="login-password">Password</label>
+            </div>
+            <div class="password-input-wrapper">
+              <input
+                [type]="showPassword ? 'text' : 'password'"
+                id="login-password"
+                [(ngModel)]="password"
+                (input)="clearError()"
+                name="password"
+                required
+                autocomplete="current-password"
+                placeholder="••••••••"
+                [disabled]="loading"
+              />
+              <button
+                type="button"
+                class="btn-toggle-password"
+                (click)="showPassword = !showPassword"
+                [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+              >
+                {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
+          </div>
+
+          @if (errorMessage) {
+            <div class="alert alert-danger" role="alert" aria-live="polite">
+              <span class="alert-icon">⚠️</span>
+              <span>{{ errorMessage }}</span>
+            </div>
+          }
+
+          <button type="submit" class="btn-primary btn-submit" [disabled]="loading || !email || !password">
+            @if (loading) {
+              <span class="spinner-dot"></span>
+              <span>Signing in...</span>
+            } @else {
+              <span>Sign In</span>
+            }
           </button>
+        </form>
+
+        <div class="auth-footer">
+          <p>Don't have an account? <a routerLink="/register">Create an account</a></p>
         </div>
       </div>
-
-      @if (errorMessage) {
-        <div class="alert alert-danger" role="alert" aria-live="polite">
-          <span class="alert-icon">⚠️</span>
-          <span>{{ errorMessage }}</span>
-        </div>
-      }
-
-      <button type="submit" class="btn-primary btn-submit" [disabled]="loading || !email || !password">
-        @if (loading) {
-          <span class="spinner-dot"></span>
-          <span>Signing in...</span>
-        } @else {
-          <span>Sign In</span>
-        }
-      </button>
-    </form>
-
-    <div class="auth-footer">
-      <p>Don't have an account? <a routerLink="/register">Create an account</a></p>
     </div>
   </div>
 </div>

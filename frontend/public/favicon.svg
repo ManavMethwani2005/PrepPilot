@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="prepGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <filter id="boltGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  
+  <!-- Rounded squircle container -->
+  <rect width="64" height="64" rx="14" fill="url(#prepGrad)"/>
+  
+  <!-- Subtle inner border highlight -->
+  <rect width="62" height="62" x="1" y="1" rx="13" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="1"/>
+  
+  <!-- PrepPilot High-Energy AI Lightning Bolt -->
+  <path d="M36 8 L18 32 L31 32 L28 56 L46 28 L33 28 Z" fill="#ffffff" filter="url(#boltGlow)"/>
+</svg>

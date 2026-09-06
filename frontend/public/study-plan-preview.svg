@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 224" width="100%" height="auto" fill="none">
+  <defs>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.98"/>
+      <stop offset="100%" stop-color="#f8fafc" stop-opacity="0.94"/>
+    </linearGradient>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="114%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#4f46e5" flood-opacity="0.07"/>
+    </filter>
+  </defs>
+
+  <!-- Main Illustration Container Card -->
+  <rect x="8" y="8" width="504" height="208" rx="16" fill="url(#cardGrad)" stroke="#e2e8f0" stroke-width="1.5" filter="url(#cardShadow)"/>
+
+  <!-- Top Brand Indicator -->
+  <rect x="24" y="24" width="30" height="30" rx="8" fill="url(#brandGrad)"/>
+  <path d="M41 31 L33 41 L38 41 L36 49 L45 37 L40 37 Z" fill="#ffffff"/>
+
+  <!-- Header text -->
+  <text x="64" y="39" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700" fill="#0f172a">Dynamic Study Timetable</text>
+  <text x="64" y="51" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="500" fill="#64748b">Regular Daily Pacing &amp; Exam Readiness</text>
+
+  <!-- Exam countdown badge (top right) -->
+  <rect x="358" y="26" width="138" height="26" rx="13" fill="#fffbeb" stroke="#fde68a" stroke-width="1"/>
+  <circle cx="372" cy="39" r="4" fill="#d97706"/>
+  <text x="382" y="43" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" fill="#92400e">Exam: 12 Days Left 🔥</text>
+
+  <!-- Session 1: Regular Study Day Block -->
+  <rect x="24" y="68" width="472" height="52" rx="10" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="24" y="68" width="5" height="52" rx="2.5" fill="#4f46e5"/>
+  <text x="40" y="90" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="800" fill="#0f172a">09:00</text>
+  <text x="40" y="104" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="600" fill="#94a3b8">AM</text>
+  <line x1="80" y1="74" x2="80" y2="114" stroke="#f1f5f9" stroke-width="1.5"/>
+
+  <text x="94" y="89" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#0f172a">Thermodynamics &amp; Energy Transfer</text>
+  <rect x="414" y="76" width="72" height="18" rx="9" fill="#eef2ff"/>
+  <text x="426" y="89" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="700" fill="#3730a3">LEARNING</text>
+  <circle cx="97" cy="103" r="3.5" fill="#4f46e5"/>
+  <text x="106" y="107" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="600" fill="#475569">Physics</text>
+  <text x="156" y="107" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="500" fill="#94a3b8">• 50m Focus Session • Regular Schedule</text>
+
+  <!-- Session 2: Exam Prep Block -->
+  <rect x="24" y="128" width="472" height="52" rx="10" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="24" y="128" width="5" height="52" rx="2.5" fill="#d97706"/>
+  <text x="40" y="150" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="800" fill="#0f172a">11:00</text>
+  <text x="40" y="164" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="600" fill="#94a3b8">AM</text>
+  <line x1="80" y1="134" x2="80" y2="174" stroke="#f1f5f9" stroke-width="1.5"/>
+
+  <text x="94" y="149" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#0f172a">Calculus: Integration by Parts</text>
+  <rect x="416" y="136" width="70" height="18" rx="9" fill="#fffbeb"/>
+  <text x="428" y="149" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="700" fill="#92400e">REVISION</text>
+  <circle cx="97" cy="163" r="3.5" fill="#0284c7"/>
+  <text x="106" y="167" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="600" fill="#475569">Mathematics</text>
+  <text x="182" y="167" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="500" fill="#94a3b8">• 30m Rapid Recall • Exam Preparation</text>
+
+  <!-- Bottom Badges -->
+  <rect x="24" y="188" width="138" height="20" rx="10" fill="#f1f5f9"/>
+  <text x="34" y="202" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#475569">📄 Syllabus PDF Mapped</text>
+
+  <rect x="170" y="188" width="170" height="20" rx="10" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="0.75"/>
+  <text x="180" y="202" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#6b21a8">🛡️ Adaptive Auto-Reschedule</text>
+
+  <rect x="348" y="188" width="148" height="20" rx="10" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="0.75"/>
+  <text x="358" y="202" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#065f46">⚡ No Domino Delays</text>
+</svg>
