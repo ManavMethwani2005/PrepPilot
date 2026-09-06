@@ -4,13 +4,73 @@
       <div class="skeleton-line" style="width: 50%; height: 28px; margin: 0 auto 12px;"></div>
       <div class="skeleton-line" style="width: 30%; height: 16px; margin: 0 auto;"></div>
     </div>
-  } @else if (!session) {
-    <div class="card empty-state">
-      <h3>Session not found</h3>
-      <p>This focus session may have been deleted or already re-allocated.</p>
-      <a routerLink="/timetable" class="btn-primary">Return to Timetable</a>
+  } @else if (notFound) {
+    <div class="card empty-state-card">
+      <div class="empty-icon">🔍</div>
+      <h2>Session not found</h2>
+      <p class="empty-subtitle">This focus session could not be found or has already been completed or rescheduled.</p>
+      <div class="empty-actions">
+        <a routerLink="/focus" class="btn-primary">⚡ Today's Focus Session</a>
+        <a routerLink="/timetable" class="btn-secondary">Return to Timetable</a>
+      </div>
+    </div>
+  } @else if (allCaughtUp || !session) {
+    <div class="card empty-state-card">
+      <div class="empty-icon">🎉</div>
+      <h2>You're all caught up for today!</h2>
+      <p class="empty-subtitle">
+        No study sessions pending for today. Take a well-deserved rest, or explore your upcoming schedule to get ahead.
+      </p>
+
+      @if (nextUpcomingSession) {
+        <div class="next-session-box">
+          <span class="next-label">Next Scheduled Session</span>
+          <div class="next-details">
+            <div class="next-meta">
+              <span class="next-date">{{ nextUpcomingSession.date | date: 'EEEE, MMM d' }}</span>
+              <span class="next-time">{{ nextUpcomingSession.startTime }} – {{ nextUpcomingSession.endTime }}</span>
+            </div>
+            <div class="next-topic">{{ nextUpcomingSession.topicId?.title || (nextUpcomingSession.sessionType === 'BUFFER' ? 'Buffer Slot' : 'Revision Session') }}</div>
+            @if (nextUpcomingSession.subjectId) {
+              <div class="next-subject" [style.color]="nextUpcomingSession.subjectId.color">
+                <span class="color-dot" [style.background]="nextUpcomingSession.subjectId.color"></span>
+                {{ nextUpcomingSession.subjectId.name }}
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="empty-actions">
+        <a routerLink="/timetable" class="btn-primary">🗓️ View Upcoming Schedule</a>
+        <a routerLink="/dashboard" class="btn-secondary">Go to Dashboard</a>
+      </div>
     </div>
   } @else {
+    <!-- Today's other sessions switcher if multiple exist -->
+    @if (todaySessions.length > 1) {
+      <div class="today-sessions-bar">
+        <span class="bar-label">Today's Sessions:</span>
+        <div class="session-chips">
+          @for (s of todaySessions; track s._id) {
+            <button
+              type="button"
+              class="session-chip"
+              [class.active]="s._id === session._id"
+              [class.chip-done]="s.status === 'COMPLETED'"
+              (click)="selectTodaySession(s)"
+            >
+              <span class="chip-time">{{ s.startTime }}</span>
+              <span class="chip-name">{{ s.subjectId?.name || 'Session' }}</span>
+              @if (s.status === 'COMPLETED') {
+                <span class="chip-check">✓</span>
+              }
+            </button>
+          }
+        </div>
+      </div>
+    }
+
     <div class="focus-card card">
       <!-- Session Header Meta -->
       <div class="session-meta">
@@ -24,9 +84,14 @@
           </span>
         }
         <span class="duration-pill">⏱️ {{ session.durationMinutes }}m planned</span>
+        @if (session.status === 'PARTIALLY_COMPLETED') {
+          <span class="status-pill pill-partial">½ Partial ({{ session.actualMinutesSpent || 0 }}m logged)</span>
+        }
       </div>
 
-      <h2 class="topic-heading">{{ session.topicId?.title || 'Open Review Session' }}</h2>
+      <h2 class="topic-heading">
+        {{ session.topicId?.title || (session.sessionType === 'BUFFER' ? 'Buffer / Catch-up Session' : 'Review Session') }}
+      </h2>
 
       <!-- PrepPilot Topic Study Tip Box -->
       @if (topicTip) {
@@ -52,10 +117,29 @@
         </div>
       }
 
+      <!-- Timer Finished Celebration Banner -->
+      @if (timerFinished) {
+        <div class="timer-finished-banner">
+          <div class="finished-celebration">🎉 Focus Interval Complete!</div>
+          <p class="finished-sub">You've reached the planned {{ session.durationMinutes }} minutes! Choose an outcome:</p>
+          <div class="finished-actions">
+            <button class="btn-success btn-finish-action" (click)="completeSession()" [disabled]="isSubmitting">
+              ✓ Mark Done & Log {{ session.durationMinutes }}m
+            </button>
+            <button class="btn-partial btn-partial-action" (click)="openPartialModal()" [disabled]="isSubmitting">
+              ½ Log Partial
+            </button>
+            <button class="btn-danger btn-miss-action" (click)="markMissedAndReschedule()" [disabled]="isSubmitting">
+              ✕ Mark Missed
+            </button>
+          </div>
+        </div>
+      }
+
       <!-- Pomodoro Countdown Timer Display -->
       <div class="timer-display">
         <div class="timer-status-badge" [class.active]="isRunning" [class.done]="timeRemaining === 0">
-          {{ isRunning ? '⚡ FOCUS IN PROGRESS' : (timeRemaining === 0 ? '🎉 SESSION FINISHED!' : '⏸ TIMER PAUSED') }}
+          {{ isRunning ? '⚡ FOCUS IN PROGRESS' : (timeRemaining === 0 ? '🎉 SESSION FINISHED!' : (isPaused ? '⏸ TIMER PAUSED' : 'READY TO START')) }}
         </div>
         <div class="time-number">{{ formattedTime }}</div>
 
@@ -72,7 +156,9 @@
       <!-- Timer Controls -->
       <div class="timer-controls">
         @if (!isRunning) {
-          <button class="btn-primary btn-timer" (click)="startTimer()">▶ Start Focus</button>
+          <button class="btn-primary btn-timer" (click)="startTimer()">
+            {{ isPaused ? '▶ Resume Focus' : '▶ Start Focus' }}
+          </button>
         } @else {
           <button class="btn-secondary btn-timer btn-pause" (click)="pauseTimer()">⏸ Pause</button>
         }
@@ -85,14 +171,83 @@
           <span>When you're done studying:</span>
         </div>
         <div class="outcome-buttons">
-          <button class="btn-success btn-finish" (click)="completeSession()">
+          <button class="btn-success btn-finish" (click)="completeSession()" [disabled]="isSubmitting">
             ✓ Complete & Log {{ session.durationMinutes }}m
           </button>
-          <button class="btn-danger btn-miss" (click)="markMissedAndReschedule()">
+          <button class="btn-partial" (click)="openPartialModal()" [disabled]="isSubmitting">
+            ½ Log Partial
+          </button>
+          <button class="btn-danger btn-miss" (click)="markMissedAndReschedule()" [disabled]="isSubmitting">
             ✕ Mark Missed & Auto-Reschedule
           </button>
         </div>
         <a routerLink="/timetable" class="link-back">← Back to Timetable</a>
+      </div>
+    </div>
+  }
+
+  <!-- Partial Completion Modal -->
+  @if (showPartialModal && session) {
+    <div class="modal-overlay" (click)="closePartialModal()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Log Partial Study Session</h3>
+          <button class="btn-close-modal" (click)="closePartialModal()">✕</button>
+        </div>
+        <p class="modal-desc">
+          Life happens! Enter how many minutes you spent studying <strong>{{ session.topicId?.title || 'this session' }}</strong>. PrepPilot will credit your progress and intelligently adapt your schedule without overloading you.
+        </p>
+
+        <div class="preset-pills">
+          <span class="preset-label">Quick select:</span>
+          @if (session.durationMinutes > 15) {
+            <button
+              type="button"
+              class="pill-btn"
+              [class.active]="partialMinutes === 15"
+              (click)="setPresetPartialMinutes(15)"
+            >
+              15m
+            </button>
+          }
+          @if (session.durationMinutes > 25) {
+            <button
+              type="button"
+              class="pill-btn"
+              [class.active]="partialMinutes === 25"
+              (click)="setPresetPartialMinutes(25)"
+            >
+              25m
+            </button>
+          }
+          @if (session.durationMinutes > 35) {
+            <button
+              type="button"
+              class="pill-btn"
+              [class.active]="partialMinutes === 35"
+              (click)="setPresetPartialMinutes(35)"
+            >
+              35m
+            </button>
+          }
+        </div>
+
+        <div class="form-group">
+          <label>Minutes Completed (out of {{ session.durationMinutes }}m):</label>
+          <input
+            type="number"
+            [(ngModel)]="partialMinutes"
+            min="5"
+            [max]="session.durationMinutes - 1"
+          />
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-nav" (click)="closePartialModal()" [disabled]="isSubmitting">Cancel</button>
+          <button class="btn-primary" (click)="submitPartialCompletion()" [disabled]="isSubmitting">
+            {{ isSubmitting ? 'Adapting...' : '⚡ Adapt Remaining Schedule' }}
+          </button>
+        </div>
       </div>
     </div>
   }

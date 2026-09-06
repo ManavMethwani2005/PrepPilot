@@ -19,6 +19,9 @@ export const routes: Routes = [
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
   { path: 'subjects', component: SubjectsComponent, canActivate: [authGuard] },
   { path: 'timetable', component: TimetableComponent, canActivate: [authGuard] },
+  { path: 'focus', component: ActiveSessionComponent, canActivate: [authGuard] },
+  { path: 'focus/:id', component: ActiveSessionComponent, canActivate: [authGuard] },
+  { path: 'session', redirectTo: 'focus', pathMatch: 'full' },
   { path: 'session/:id', component: ActiveSessionComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: 'dashboard' },
 ];
