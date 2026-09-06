@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -20,6 +20,7 @@ export class LoginComponent implements OnInit {
 
   private authService = inject(AuthService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     if (this.authService.isAuthenticated()) {
@@ -30,22 +31,26 @@ export class LoginComponent implements OnInit {
   clearError(): void {
     if (this.errorMessage) {
       this.errorMessage = '';
+      this.cdr.markForCheck();
     }
   }
 
   onSubmit(): void {
     if (!this.email.trim() || !this.password) {
       this.errorMessage = 'Please enter both email and password.';
+      this.cdr.markForCheck();
       return;
     }
 
     this.loading = true;
     this.errorMessage = '';
+    this.cdr.markForCheck();
 
     this.authService.login({ email: this.email.trim(), password: this.password }).subscribe({
       next: () => {
         this.loading = false;
         this.errorMessage = '';
+        this.cdr.detectChanges();
         this.router.navigate(['/dashboard'], { replaceUrl: true });
       },
       error: (err) => {
@@ -57,6 +62,7 @@ export class LoginComponent implements OnInit {
         } else {
           this.errorMessage = err.error?.message || err.userMessage || 'Invalid email or password.';
         }
+        this.cdr.detectChanges();
       },
     });
   }
