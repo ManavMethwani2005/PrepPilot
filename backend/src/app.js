@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { generalLimiter } = require('./middleware/rateLimiter');
@@ -11,28 +12,69 @@ const rescheduleRoutes = require('./routes/rescheduleRoutes');
 
 const app = express();
 
-// CORS configuration: allow dev localhost:4200 and production client
-const configuredOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(',').map((url) => url.trim().replace(/\/+$/, ''))
-  : [];
+// Helper to parse comma-separated origin URLs from environment variables
+function parseAllowedOrigins(rawClientUrl) {
+  const defaultOrigins = [
+    'http://localhost:4200',
+    'http://127.0.0.1:4200',
+    'https://prep-pilot-brown.vercel.app',
+  ];
 
-const allowedOrigins = [
-  'http://localhost:4200',
-  'http://127.0.0.1:4200',
-  ...configuredOrigins,
-].filter(Boolean);
+  if (!rawClientUrl) {
+    return defaultOrigins;
+  }
 
+  const unquoted = rawClientUrl.trim().replace(/^['"]+|['"]+$/g, '');
+  const parsed = unquoted
+    .split(',')
+    .map((url) =>
+      url
+        .trim()
+        .replace(/^['"]+|['"]+$/g, '')
+        .trim()
+        .replace(/\/+$/, '')
+    )
+    .filter(Boolean);
+
+  return Array.from(new Set([...defaultOrigins, ...parsed]));
+}
+
+const allowedOrigins = parseAllowedOrigins(process.env.CLIENT_URL);
+
+app.set('trust proxy', 1);
+
+// CORS configuration: must be registered before any routes or body parsers
 app.use(
   cors({
     origin: function (origin, callback) {
-      const normalizedOrigin = origin ? origin.replace(/\/+$/, '') : origin;
-      if (!origin || allowedOrigins.includes(normalizedOrigin) || process.env.NODE_ENV !== 'production') {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server, health checks)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Normalize incoming origin (trim, strip trailing slashes, case-insensitive comparison)
+      const normalizedOrigin = origin.trim().replace(/\/+$/, '').toLowerCase();
+      const isAllowed = allowedOrigins.some(
+        (allowed) => allowed.toLowerCase() === normalizedOrigin
+      );
+      const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(normalizedOrigin);
+
+      if (isAllowed || (process.env.NODE_ENV !== 'production' && isLocalhost)) {
         callback(null, true);
       } else {
-        callback(new Error('Blocked by CORS policy.'));
+        callback(null, false);
       }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
+    optionsSuccessStatus: 200,
   })
 );
 
